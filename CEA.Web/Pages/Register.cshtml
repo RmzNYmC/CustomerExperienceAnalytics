@@ -1,0 +1,57 @@
+﻿@page
+@model CEA.Web.Pages.RegisterModel
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "Yeni Kullanıcı";
+}
+
+<div class="survey-card" style="max-width: 500px; margin: 3rem auto;">
+    <div class="survey-header">
+        <h1><i class="bi bi-person-plus"></i> Yeni Kullanıcı</h1>
+    </div>
+    <div class="survey-body">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Ad</label>
+                    <input asp-for="Input.FirstName" class="form-control" />
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Soyad</label>
+                    <input asp-for="Input.LastName" class="form-control" />
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">E-posta</label>
+                <input asp-for="Input.Email" class="form-control" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Departman</label>
+                <input asp-for="Input.Department" class="form-control" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Şifre</label>
+                <input asp-for="Input.Password" type="password" class="form-control" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Şifre Tekrar</label>
+                <input asp-for="Input.ConfirmPassword" type="password" class="form-control" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Roller</label>
+                <select asp-for="Input.Roles" asp-items="Model.RoleList" class="form-select" multiple>
+                </select>
+                <small class="text-muted">Ctrl+Click ile çoklu seçim</small>
+            </div>
+            
+            <button type="submit" class="btn-submit">Kaydet</button>
+        </form>
+    </div>
+</div>

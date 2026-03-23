@@ -1,0 +1,343 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Analytics.IndexModel
+@{
+    ViewData["Title"] = "Analiz ve Raporlar";
+    Layout = "_Layout";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="stat-card">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Anket Seçin</label>
+                    <select asp-for="SelectedSurveyId" asp-items="Model.SurveyList" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Anket Seçin --</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Yıl</label>
+                    <select asp-for="SelectedYear" class="form-select" onchange="this.form.submit()">
+                        @for (int y = DateTime.Now.Year; y >= 2020; y--)
+                        {
+                            <option value="@y">@y</option>
+                        }
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Dönem</label>
+                    <select asp-for="SelectedMonth" class="form-select" onchange="this.form.submit()">
+                        <option value="">Yıllık (Tümü)</option>
+                        @for (int m = 1; m <= 12; m++)
+                        {
+                            <option value="@m">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)</option>
+                        }
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label fw-semibold">Karşılaştırma</label>
+                    <select asp-for="ComparisonType" class="form-select" onchange="this.form.submit()">
+                        <option value="None">Karşılaştırma Yok</option>
+                        <option value="PreviousYear">Önceki Yıl</option>
+                        <option value="PreviousMonth">Önceki Ay</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3 text-end">
+                    @if (Model.AnalysisResult != null)
+                    {
+                        <a href="/Admin/Analytics/ExportPdf?surveyId=@Model.SelectedSurveyId&year=@Model.SelectedYear&month=@Model.SelectedMonth"
+                               class="btn btn-danger" target="_blank">
+                            <i class="bi bi-file-pdf me-2"></i>PDF İndir
+                        </a>
+                        <a href="/Admin/Analytics/ExportExcel?surveyId=@Model.SelectedSurveyId&year=@Model.SelectedYear&month=@Model.SelectedMonth"
+                               class="btn btn-success">
+                            <i class="bi bi-file-excel me-2"></i>Excel
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@if (Model.AnalysisResult != null)
+{
+    <!-- Summary Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card border-start border-4 border-primary">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label text-uppercase small fw-bold text-primary">Toplam Yanıt</div>
+                        <div class="stat-value">@Model.AnalysisResult.TotalResponses</div>
+                        @if (Model.ComparisonResult != null)
+                        {
+                            var diff = Model.AnalysisResult.TotalResponses - Model.ComparisonResult.TotalResponses;
+                            var percent = Model.ComparisonResult.TotalResponses > 0 ?
+                                (decimal)diff / Model.ComparisonResult.TotalResponses * 100 : 0;
+                            <small class="@(diff >= 0 ? "text-success" : "text-danger")">
+                                <i class="bi bi-arrow-@(diff >= 0 ? "up" : "down")"></i>
+                                @Math.Abs(percent).ToString("F1")% @Model.ComparisonLabel
+                            </small>
+                        }
+                    </div>
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-people"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="stat-card border-start border-4 border-success">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label text-uppercase small fw-bold text-success">Ortalama Memnuniyet</div>
+                        <div class="stat-value">@Model.AnalysisResult.AverageSatisfaction.ToString("F1")<small class="fs-6">/5</small></div>
+                        @if (Model.ComparisonResult != null)
+                        {
+                            var diff = Model.AnalysisResult.AverageSatisfaction - Model.ComparisonResult.AverageSatisfaction;
+                            <small class="@(diff >= 0 ? "text-success" : "text-danger")">
+                                <i class="bi bi-arrow-@(diff >= 0 ? "up" : "down")"></i>
+                                @Math.Abs(diff).ToString("F2") @Model.ComparisonLabel
+                            </small>
+                        }
+                    </div>
+                    <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="stat-card border-start border-4 border-info">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label text-uppercase small fw-bold text-info">NPS Skoru</div>
+                        <div class="stat-value">@Model.AnalysisResult.NpsScore.ToString("F0")</div>
+                        @if (Model.ComparisonResult != null)
+                        {
+                            var diff = Model.AnalysisResult.NpsScore - Model.ComparisonResult.NpsScore;
+                            <small class="@(diff >= 0 ? "text-success" : "text-danger")">
+                                <i class="bi bi-arrow-@(diff >= 0 ? "up" : "down")"></i>
+                                @Math.Abs(diff).ToString("F0") @Model.ComparisonLabel
+                            </small>
+                        }
+                    </div>
+                    <div class="stat-icon bg-info bg-opacity-10 text-info">
+                        <i class="bi bi-heart-fill"></i>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    @if (Model.AnalysisResult.NpsScore >= 50)
+                    {
+                        <span class="badge bg-success">Mükemmel</span>
+                    }
+                    else if (Model.AnalysisResult.NpsScore >= 0)
+                    {
+                        <span class="badge bg-warning text-dark">İyi</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">İyileştirme Gerekli</span>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="stat-card border-start border-4 border-danger">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <div class="stat-label text-uppercase small fw-bold text-danger">Şikayet Sayısı</div>
+                        <div class="stat-value">@Model.AnalysisResult.ComplaintCount</div>
+                        @if (Model.ComparisonResult != null)
+                        {
+                            var diff = Model.AnalysisResult.ComplaintCount - Model.ComparisonResult.ComplaintCount;
+                            <small class="@(diff <= 0 ? "text-success" : "text-danger")">
+                                <i class="bi bi-arrow-@(diff <= 0 ? "down" : "up")"></i>
+                                @Math.Abs(diff) @Model.ComparisonLabel
+                            </small>
+                        }
+                    </div>
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="stat-card">
+                <h6 class="mb-4">NPS Dağılımı</h6>
+                <canvas id="npsChart" height="250"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="stat-card">
+                <h6 class="mb-4">Memnuniyet Trendi</h6>
+                <canvas id="satisfactionChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Question Details -->
+    <div class="stat-card">
+        <h6 class="mb-4">Soru Bazlı Detaylı Analiz</h6>
+        
+        <div class="accordion" id="questionAccordion">
+            @foreach (var question in Model.AnalysisResult.QuestionBreakdown)
+            {
+                <div class="accordion-item mb-2 border">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button @(question != Model.AnalysisResult.QuestionBreakdown.First() ? "collapsed" : "")"
+                                type="button" data-bs-toggle="collapse" data-bs-target="#q-@question.QuestionId">
+                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                                <span>
+                                    <span class="badge bg-secondary me-2">@question.Type</span>
+                                    @question.QuestionText
+                                </span>
+                                <span class="badge bg-primary">Ort: @question.AverageScore.ToString("F2")</span>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="q-@question.QuestionId" class="accordion-collapse collapse @(question == Model.AnalysisResult.QuestionBreakdown.First() ? "show" : "")">
+                        <div class="accordion-body">
+                            @if (question.Distribution.Any())
+                            {
+                                <div class="table-responsive">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Cevap/Seçenek</th>
+                                                <th>Sayı</th>
+                                                <th>Yüzde</th>
+                                                <th>Görsel</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var dist in question.Distribution)
+                                            {
+                                                <tr>
+                                                    <td>@dist.Label</td>
+                                                    <td>@dist.Count</td>
+                                                    <td>%@dist.Percentage.ToString("F1")</td>
+                                                    <td style="width: 40%;">
+                                                        <div class="progress" style="height: 20px;">
+                                                            <div class="progress-bar @(dist.Percentage > 50 ? "bg-success" : dist.Percentage > 25 ? "bg-warning" : "bg-danger")"
+                                                                 role="progressbar" style="width: @dist.Percentage%"></div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                @if (question.Type == CEA.Core.Enums.QuestionType.RatingScale ||
+                                                                     question.Type == CEA.Core.Enums.QuestionType.NpsScore)
+                                {
+                                    <div class="mt-3">
+                                        <canvas id="chart-q-@question.QuestionId" height="100"></canvas>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <p class="text-muted">Bu soru tipi için dağılım grafiği oluşturulamaz.</p>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+else
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        Lütfen analiz görmek için bir anket seçin.
+    </div>
+}
+
+@section Scripts {
+    <script>
+        @if (Model.AnalysisResult != null)
+        {
+                <text>
+                    // NPS Chart
+                    const npsCtx = document.getElementById('npsChart').getContext('2d');
+                    new Chart(npsCtx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Promoters (9-10)', 'Passives (7-8)', 'Detractors (0-6)'],
+                            datasets: [{
+                                data: [@Model.NpsDistribution.Promoters, @Model.NpsDistribution.Passives, @Model.NpsDistribution.Detractors],
+                                backgroundColor: ['#10b981', '#f59e0b', '#ef4444']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            plugins: {
+                                legend: { position: 'bottom' }
+                            }
+                        }
+                    });
+
+                    // Satisfaction Trend (Monthly data)
+                    const satCtx = document.getElementById('satisfactionChart').getContext('2d');
+                    new Chart(satCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: @Json.Serialize(Model.MonthlyLabels),
+                            datasets: [{
+                                label: 'Ortalama Puan',
+                                data: @Json.Serialize(Model.MonthlyScores),
+                                backgroundColor: '#3b82f6',
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                y: { beginAtZero: true, max: 5 }
+                            }
+                        }
+                    });
+
+                    // Individual question charts
+                    @foreach (var q in Model.AnalysisResult.QuestionBreakdown.Where(x =>
+                                    x.Type == CEA.Core.Enums.QuestionType.RatingScale ||
+                                    x.Type == CEA.Core.Enums.QuestionType.NpsScore))
+                    {
+                            <text>
+                                new Chart(document.getElementById('chart-q-@q.QuestionId'), {
+                                    type: 'bar',
+                                    data: {
+                                        labels: @Json.Serialize(q.Distribution.Select(d => d.Label)),
+                                        datasets: [{
+                                            label: 'Yanıt Sayısı',
+                                            data: @Json.Serialize(q.Distribution.Select(d => d.Count)),
+                                            backgroundColor: '#6366f1'
+                                        }]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        plugins: { legend: { display: false } }
+                                    }
+                                });
+                            </text>
+                    }
+                </text>
+        }
+    </script>
+}

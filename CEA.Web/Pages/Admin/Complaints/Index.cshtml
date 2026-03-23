@@ -1,0 +1,241 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Complaints.IndexModel
+@{
+    ViewData["Title"] = "Şikayet Yönetimi";
+    Layout = "_Layout";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="stat-card">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">Durum</label>
+                    <select asp-for="FilterStatus" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tümü</option>
+                        <option value="New">Yeni</option>
+                        <option value="InProgress">İşlemde</option>
+                        <option value="WaitingForInfo">Bilgi Bekleniyor</option>
+                        <option value="Resolved">Çözüldü</option>
+                        <option value="Closed">Kapatıldı</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Öncelik</label>
+                    <select asp-for="FilterPriority" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tümü</option>
+                        <option value="Critical">Kritik</option>
+                        <option value="High">Yüksek</option>
+                        <option value="Medium">Orta</option>
+                        <option value="Low">Düşük</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Atanan Kişi</label>
+                    <select asp-for="FilterAssignedTo" asp-items="Model.UserList" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tümü</option>
+                    </select>
+                </div>
+                <div class="col-md-3 text-end">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-primary" onclick="refreshData()">
+                            <i class="bi bi-arrow-clockwise"></i> Yenile
+                        </button>
+                        <a href="/Admin/Complaints/Export" class="btn btn-outline-success">
+                            <i class="bi bi-download"></i> Dışa Aktar
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="stat-card">
+    <div class="table-responsive">
+        <table class="table custom-table table-hover" id="complaintsTable">
+            <thead>
+                <tr>
+                    <th>Ticket #</th>
+                    <th>Müşteri</th>
+                    <th>Kategori</th>
+                    <th>Konu</th>
+                    <th>Öncelik</th>
+                    <th>Durum</th>
+                    <th>Atanan</th>
+                    <th>Tarih</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Complaints)
+                {
+                    <tr class="@(item.IsUnread ? "table-warning" : "")" data-id="@item.Id">
+                        <td>
+                            <a href="/Admin/Complaints/Details?id=@item.Id" class="fw-bold text-decoration-none">
+                                @item.TicketNumber
+                            </a>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@item.CustomerName</div>
+                            <small class="text-muted">@item.CustomerEmail</small>
+                        </td>
+                        <td><span class="badge bg-secondary">@item.Category</span></td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 200px;" title="@item.Title">
+                                @item.Title
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-@(item.Priority == "Critical" ? "danger" : item.Priority == "High" ? "warning text-dark" : item.Priority == "Medium" ? "info" : "secondary")">
+                                @item.Priority
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-@(item.Status == "New" ? "danger" : item.Status == "InProgress" ? "primary" : item.Status == "Resolved" ? "success" : "secondary")">
+                                @item.Status
+                            </span>
+                        </td>
+                        <td>
+                            @if (!string.IsNullOrEmpty(item.AssignedToName))
+                            {
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width:28px;height:28px;font-size:12px;">
+                                        @item.AssignedToName?[0]
+                                    </div>
+                                    <small>@item.AssignedToName</small>
+                                </div>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Atanmadı</span>
+                            }
+                        </td>
+                        <td>
+                            <small>@item.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                            @if (item.DueDate.HasValue)
+                            {
+                                <div class="small @(item.DueDate < DateTime.Now ? "text-danger" : "text-muted")">
+                                    <i class="bi bi-clock"></i> @item.DueDate.Value.ToString("dd.MM.yyyy")
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="/Admin/Complaints/Details?id=@item.Id" class="btn btn-outline-primary" title="Görüntüle">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @if (item.Status != "Closed" && item.Status != "Resolved")
+                                {
+                                    <button type="button" class="btn btn-outline-success" title="Hızlı Atama"
+                                            onclick="quickAssign(@item.Id)">
+                                        <i class="bi bi-person-check"></i>
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    @if (Model.TotalPages > 1)
+    {
+        <nav class="mt-4">
+            <ul class="pagination justify-content-center">
+                @for (int i = 1; i <= Model.TotalPages; i++)
+                {
+                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                        <a class="page-link" href="?page=@i&status=@Model.FilterStatus&priority=@Model.FilterPriority">@i</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+</div>
+
+<!-- Quick Assign Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Şikayet Ata</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="assignComplaintId" />
+                <select class="form-select" id="assignUserId">
+                    <option value="">-- Kullanıcı Seçin --</option>
+                    @foreach (var user in Model.AvailableUsers)
+                    {
+                        <option value="@user.Id">@user.Name (@user.Department)</option>
+                    }
+                </select>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-primary" onclick="confirmAssign()">Ata</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let assignModal;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            assignModal = new bootstrap.Modal(document.getElementById('assignModal'));
+        });
+
+        function quickAssign(complaintId) {
+            document.getElementById('assignComplaintId').value = complaintId;
+            assignModal.show();
+        }
+
+        async function confirmAssign() {
+            const complaintId = document.getElementById('assignComplaintId').value;
+            const userId = document.getElementById('assignUserId').value;
+
+            if (!userId) {
+                alert('Lütfen bir kullanıcı seçin');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/complaints/assign', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ complaintId: parseInt(complaintId), userId: userId })
+                });
+
+                if (response.ok) {
+                    assignModal.hide();
+                    location.reload();
+                } else {
+                    alert('Atama işlemi başarısız oldu');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Bir hata oluştu');
+            }
+        }
+
+        function refreshData() {
+            location.reload();
+        }
+
+        // Real-time updates (SignalR veya polling)
+        setInterval(async () => {
+            const response = await fetch('/api/complaints/new-count');
+            const count = await response.json();
+            if (count > 0) {
+                // Yeni şikayet varsa bildirim göster
+                console.log(`${count} yeni şikayet var`);
+            }
+        }, 30000);
+    </script>
+}

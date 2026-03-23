@@ -1,0 +1,29 @@
+﻿@page
+@model CEA.Web.Pages.LoginModel
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "Giriş Yap";
+}
+
+<div class="survey-card" style="max-width: 400px; margin: 5rem auto;">
+    <div class="survey-header">
+        <h1><i class="bi bi-shield-lock"></i> Giriş Yap</h1>
+    </div>
+    <div class="survey-body">
+        <form method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            
+            <div class="mb-3">
+                <label class="form-label">E-posta</label>
+                <input asp-for="Input.Email" class="form-control" placeholder="admin@cea.com" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Şifre</label>
+                <input asp-for="Input.Password" type="password" class="form-control" placeholder="Admin123!" />
+            </div>
+            
+            <button type="submit" class="btn-submit">Giriş Yap</button>
+        </form>
+    </div>
+</div>4

@@ -1,0 +1,220 @@
+﻿@page
+@model CEA.Web.Pages.Admin.DashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "_Layout";
+}
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-clipboard-data"></i>
+            </div>
+            <div class="stat-value">@Model.Summary.TotalSurveys</div>
+            <div class="stat-label">Toplam Anket</div>
+            <small class="text-success"><i class="bi bi-arrow-up"></i> @Model.Summary.ActiveSurveys aktif</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-check2-circle"></i>
+            </div>
+            <div class="stat-value">@Model.Summary.TotalResponsesThisMonth</div>
+            <div class="stat-label">Bu Ay Yanıt</div>
+            <small class="text-muted">Yıl: @Model.Summary.TotalResponsesThisYear</small>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-info bg-opacity-10 text-info">
+                <i class="bi bi-emoji-smile"></i>
+            </div>
+            <div class="stat-value">@Model.Summary.AverageNpsThisMonth.ToString("F0")</div>
+            <div class="stat-label">NPS Skoru (Bu Ay)</div>
+            <small class="@(Model.Summary.AverageNpsThisMonth >= 50 ? "text-success" : "text-warning")">
+                <i class="bi bi-@(Model.Summary.AverageNpsThisMonth >= 50 ? "arrow-up" : "arrow-down")"></i>
+                Yıl: @Model.Summary.AverageNpsThisYear.ToString("F0")
+            </small>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-icon bg-danger bg-opacity-10 text-danger">
+                <i class="bi bi-exclamation-diamond"></i>
+            </div>
+            <div class="stat-value">@Model.Summary.OpenComplaints</div>
+            <div class="stat-label">Açık Şikayet</div>
+            <small class="text-danger fw-bold">
+                @Model.Summary.CriticalComplaints kritik
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="stat-card">
+            <h6 class="mb-4">Yanıt Trendi (Son 6 Ay)</h6>
+            <canvas id="trendChart" height="100"></canvas>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="stat-card">
+            <h6 class="mb-4">Hızlı İşlemler</h6>
+            <div class="d-grid gap-2">
+                <a href="/Admin/Surveys/Create" class="btn btn-primary-custom text-white">
+                    <i class="bi bi-plus-lg me-2"></i>Yeni Anket Oluştur
+                </a>
+                <a href="/Admin/Analytics/Index" class="btn btn-outline-primary">
+                    <i class="bi bi-graph-up me-2"></i>Detaylı Analiz Gör
+                </a>
+                <a href="/Admin/Complaints/Index" class="btn btn-outline-danger">
+                    <i class="bi bi-inbox me-2"></i>Şikayetleri Yönet
+                </a>
+            </div>
+            
+            <hr class="my-4">
+            
+            <h6 class="mb-3">Son Aktiviteler</h6>
+            <div class="list-group list-group-flush">
+                @foreach (var activity in Model.RecentActivities)
+                {
+                    <div class="list-group-item px-0 py-2 border-0">
+                        <div class="d-flex w-100 justify-content-between">
+                            <small class="text-muted">@activity.Time.ToString("dd.MM HH:mm")</small>
+                        </div>
+                        <p class="mb-1 small">@activity.Description</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Surveys & Complaints -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h6 class="mb-0">Son Anketler</h6>
+                <a href="/Admin/Surveys/Index" class="btn btn-sm btn-outline-primary">Tümünü Gör</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Anket</th>
+                            <th>Durum</th>
+                            <th>Yanıt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var survey in Model.RecentSurveys)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@survey.Title</div>
+                                    <small class="text-muted">@survey.CreatedAt.ToString("dd.MM.yyyy")</small>
+                                </td>
+                                <td>
+                                    <span class="badge-status badge-@survey.Status.ToString().ToLower()">
+                                        @survey.Status
+                                    </span>
+                                </td>
+                                <td>@survey.ResponseCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h6 class="mb-0">Son Şikayetler</h6>
+                <a href="/Admin/Complaints/Index" class="btn btn-sm btn-outline-danger">Tümünü Gör</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Ticket</th>
+                            <th>Kategori</th>
+                            <th>Öncelik</th>
+                            <th>Durum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var complaint in Model.RecentComplaints)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="/Admin/Complaints/Details?id=@complaint.Id" class="fw-semibold text-decoration-none">
+                                        @complaint.TicketNumber
+                                    </a>
+                                    <div class="small text-muted">@complaint.CustomerName</div>
+                                </td>
+                                <td>@complaint.Category</td>
+                                <td>
+                                    <span class="badge bg-@(complaint.Priority == "Critical" ? "danger" : complaint.Priority == "High" ? "warning" : "secondary")">
+                                        @complaint.Priority
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-@(complaint.Status == "New" ? "danger" : complaint.Status == "InProgress" ? "primary" : "success")">
+                                        @complaint.Status
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Trend Chart
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        const trendData = @Json.Serialize(Model.Summary.MonthlyTrend);
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trendData.map(x => x.label),
+                datasets: [{
+                    label: 'Yanıt Sayısı',
+                    data: trendData.map(x => x.value),
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0 }
+                    }
+                }
+            }
+        });
+    </script>
+}

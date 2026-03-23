@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CEA.Business/CEA.Business.csproj" />
+  <Project Path="CEA.Core/CEA.Core.csproj" />
+  <Project Path="CEA.Data/CEA.Data.csproj" />
+  <Project Path="CEA.Web/CEA.Web.csproj" />
+</Solution>

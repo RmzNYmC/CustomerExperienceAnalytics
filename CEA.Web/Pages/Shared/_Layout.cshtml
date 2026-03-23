@@ -1,0 +1,346 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Müşteri Deneyimi Analizi</title>
+    
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #64748b;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --sidebar-width: 280px;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: #f1f5f9;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            z-index: 1000;
+            transition: all 0.3s;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .sidebar-brand h4 {
+            margin: 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .sidebar-menu {
+            padding: 1rem 0;
+        }
+
+        .menu-item {
+            padding: 0.875rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: rgba(255,255,255,0.05);
+            color: white;
+            border-left-color: var(--primary-color);
+        }
+
+        .menu-item i {
+            font-size: 1.25rem;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 2rem;
+            min-height: 100vh;
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            background: white;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Cards */
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: none;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: var(--secondary-color);
+            font-size: 0.875rem;
+        }
+
+        /* Tables */
+        .custom-table {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .custom-table thead {
+            background: #f8fafc;
+        }
+
+        .custom-table th {
+            font-weight: 600;
+            color: #475569;
+            padding: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .custom-table td {
+            padding: 1rem;
+            vertical-align: middle;
+        }
+
+        /* Status Badges */
+        .badge-status {
+            padding: 0.5rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-active {.badge-active { background: #dcfce7; color: #166534; }
+        .badge-draft { background: #f1f5f9; color: #475569; }
+        .badge-completed { background: #dbeafe; color: #1e40af; }
+        .badge-archived { background: #f3f4f6; color: #6b7280; }
+
+        /* Buttons */
+        .btn-primary-custom {
+            background: var(--primary-color);
+            border: none;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary-custom:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+        }
+
+        /* Survey Builder */
+        .question-card {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .question-card:hover {
+            border-color: var(--primary-color);
+        }
+
+        .drag-handle {
+            position: absolute;
+            left: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: move;
+            color: #94a3b8;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .question-card:hover .drag-handle {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h4>
+                <i class="bi bi-graph-up-arrow"></i>
+                <span>Turkon Lojistik CEA Sistemi</span>
+            </h4>
+        </div>
+        
+        <nav class="sidebar-menu">
+            <a href="/Admin/Dashboard" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("Dashboard") == true ? "active" : "")">
+                <i class="bi bi-speedometer2"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            <a href="/Admin/Surveys/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("Survey") == true ? "active" : "")">
+    <i class="bi bi-clipboard-check"></i>
+    <span>Anket Yönetimi</span>
+</a>
+            </a>
+            
+            <a href="/Admin/Analytics/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("Analytics") == true ? "active" : "")">
+                <i class="bi bi-bar-chart-line"></i>
+                <span>Analiz & Raporlar</span>
+            </a>
+            
+            <a href="/Admin/Complaints/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("Complaint") == true ? "active" : "")">
+                <i class="bi bi-exclamation-triangle"></i>
+                <span>Şikayet Yönetimi</span>
+                <span class="badge bg-danger ms-auto" id="openComplaintsBadge" style="display:none;">0</span>
+            </a>
+            
+            <a href="/Admin/Users/Index" class="menu-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("User") == true ? "active" : "")">
+                <i class="bi bi-people"></i>
+                <span>Kullanıcı Yönetimi</span>
+            </a>
+            
+            <div class="mt-4 pt-4 border-top border-secondary">
+                <a href="/Profile" class="menu-item">
+                    <i class="bi bi-person-gear"></i>
+                    <span>Profilim</span>
+                </a>
+                
+                <form method="post" asp-page="/Logout" class="d-inline">
+    <button type="submit" class="menu-item text-danger border-0 bg-transparent w-100 text-start">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Çıkış Yap</span>
+    </button>
+</form>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Top Navbar -->
+        <div class="top-navbar">
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn btn-sm btn-outline-secondary d-md-none" onclick="toggleSidebar()">
+                    <i class="bi bi-list"></i>
+                </button>
+                <h5 class="mb-0 text-secondary">@ViewData["Title"]</h5>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-end">
+                    <div class="fw-semibold">@User.Identity?.Name</div>
+                    <small class="text-muted">@User.FindFirst("http://schemas.microsoft.com/ws/2008/06/identity/claims/role")?.Value</small>
+                </div>
+                <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;">
+                    <i class="bi bi-person"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        @RenderBody()
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <script>
+        function toggleSidebar() {
+            document.querySelector('.sidebar').classList.toggle('show');
+        }
+
+        // Açık şikayet sayısını kontrol et
+        async function checkOpenComplaints() {
+            try {
+                const response = await fetch('/api/complaints/open-count');
+                const count = await response.json();
+                const badge = document.getElementById('openComplaintsBadge');
+                if (count > 0) {
+                    badge.textContent = count > 99 ? '99+' : count;
+                    badge.style.display = 'inline-block';
+                }
+            } catch (e) {
+                console.error('Şikayet sayısı alınamadı:', e);
+            }
+        }
+        
+        checkOpenComplaints();
+        setInterval(checkOpenComplaints, 60000); // Her dakika kontrol et
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

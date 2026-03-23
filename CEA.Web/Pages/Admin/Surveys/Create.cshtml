@@ -1,0 +1,434 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Surveys.CreateModel
+@{
+    ViewData["Title"] = "Yeni Anket Oluştur";
+    Layout = "_Layout";
+}
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="stat-card mb-4">
+            <h5 class="mb-4">Anket Bilgileri</h5>
+            
+            <form method="post" id="surveyForm">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                
+                <div class="mb-3">
+                    <label asp-for="Input.Title" class="form-label fw-semibold">Anket Başlığı *</label>
+                    <input asp-for="Input.Title" class="form-control form-control-lg" placeholder="Örn: 2024 Yılı Müşteri Memnuniyet Anketi">
+                        <span asp-validation-for="Input.Title" class="text-danger"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Description" class="form-label">Açıklama</label>
+                        <textarea asp-for="Input.Description" class="form-control" rows="2" placeholder="Anketin amacı hakkında kısa bilgi"></textarea>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Input.WelcomeMessage" class="form-label">Karşılama Mesajı</label>
+                            <textarea asp-for="Input.WelcomeMessage" class="form-control" rows="3" placeholder="Anket başlangıcında gösterilecek mesaj"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Input.ThankYouMessage" class="form-label">Teşekkür Mesajı</label>
+                            <textarea asp-for="Input.ThankYouMessage" class="form-control" rows="3" placeholder="Anket bitiminde gösterilecek mesaj"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Input.StartDate" class="form-label">Başlangıç Tarihi</label>
+                            <input asp-for="Input.StartDate" type="datetime-local" class="form-control">
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.EndDate" class="form-label">Bitiş Tarihi</label>
+                                <input asp-for="Input.EndDate" type="datetime-local" class="form-control">
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">Analiz Dönemi *</label>
+                                    <div class="input-group">
+                                        <select asp-for="Input.AnalysisType" class="form-select" id="analysisType">
+                                            <option value="Yearly">Yıllık</option>
+                                            <option value="Monthly">Aylık</option>
+                                        </select>
+                                        <input asp-for="Input.AnalysisYear" type="number" class="form-control" value="@DateTime.Now.Year" min="2020" max="2030">
+                                            <select asp-for="Input.AnalysisMonth" class="form-select" id="analysisMonth" style="display:none;">
+                                                @for (int i = 1; i <= 12; i++)
+                                                {
+                                                    <option value="@i">@System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(i)</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <small class="text-muted">Yanıtlar bu dönemde kaydedilecek ve analiz edilecektir.</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Erişim Ayarları</label>
+                                        <div class="form-check">
+                                            <input asp-for="Input.RequiresAuthentication" class="form-check-input" type="checkbox">
+                                                <label asp-for="Input.RequiresAuthentication" class="form-check-label">Giriş gerektir</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input asp-for="Input.AllowMultipleResponses" class="form-check-input" type="checkbox">
+                                                    <label asp-for="Input.AllowMultipleResponses" class="form-check-label">Çoklu yanıta izin ver</label>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <hr class="my-4">
+
+                                        <div class="d-flex justify-content-between align-items-center mb-4">
+                                            <h5 class="mb-0">Sorular <span class="badge bg-secondary" id="questionCount">0</span></h5>
+                                            <button type="button" class="btn btn-outline-primary" onclick="addQuestion()">
+                                                <i class="bi bi-plus-lg me-2"></i>Soru Ekle
+                                            </button>
+                                        </div>
+
+                                        <div id="questionsContainer">
+                                            <!-- Sorular buraya dinamik olarak eklenecek -->
+                                        </div>
+
+                                        <input type="hidden" asp-for="Input.QuestionsJson" id="questionsJson" />
+
+                                        <!-- Anket Kaydet ve İptal butonları -->
+                                        <div class="d-grid gap-2 mt-4">
+                                            <button type="submit" class="btn btn-primary btn-lg" onclick="return prepareSubmit()">
+                                                <i class="bi bi-check-lg me-2"></i>Anketi Kaydet
+                                            </button>
+                                            <a href="/Admin/Surveys/Index" class="btn btn-outline-secondary btn-lg">İptal</a>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Question Templates (Sidebar) -->
+                            <div class="col-lg-4">
+                                <div class="stat-card" style="position: sticky; top: 2rem;">
+                                    <h6 class="mb-3">Soru Şablonları</h6>
+                                    <p class="text-muted small mb-3">Hızlı eklemek için bir şablona tıklayın</p>
+            
+                                    <div class="d-grid gap-2">
+                                        <button type="button" class="btn btn-outline-secondary text-start" onclick="addTemplate('nps')">
+                                            <i class="bi bi-123 me-2"></i>NPS Skoru (0-10)
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary text-start" onclick="addTemplate('rating5')">
+                                            <i class="bi bi-star me-2"></i>5 Yıldız Derecelendirme
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary text-start" onclick="addTemplate('single')">
+                                            <i class="bi bi-check-circle me-2"></i>Tek Seçimli
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary text-start" onclick="addTemplate('text')">
+                                            <i class="bi bi-text-paragraph me-2"></i>Açık Uçlu Metin
+                                        </button>
+                                    </div>
+
+                                    <hr class="my-4">
+
+                                    <div class="alert alert-info small">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        <strong>İpucu:</strong> Düşük puan alan yanıtlar için otomatik şikayet oluşturmayı soru ayarlarından aktif edebilirsiniz.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Question Editor Modal -->
+                        <div class="modal fade" id="questionModal" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Soru Düzenle</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label">Soru Metni *</label>
+                                            <input type="text" class="form-control" id="modalQuestionText" placeholder="Sorunuzu yazın...">
+                                        </div>
+                
+                                        <div class="mb-3">
+                                            <label class="form-label">Soru Tipi</label>
+                                            <select class="form-select" id="modalQuestionType" onchange="onQuestionTypeChange()">
+                                                <option value="1">Tek Seçim (Radio)</option>
+                                                <option value="2">Çoklu Seçim (Checkbox)</option>
+                                                <option value="3">Derecelendirme (1-5)</option>
+                                                <option value="4">Açık Uçlu Metin</option>
+                                                <option value="5">NPS Skoru (0-10)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="mb-3">
+                                            <div class="form-check">
+                                                <input type="checkbox" class="form-check-input" id="modalIsRequired" checked>
+                                                <label class="form-check-label">Zorunlu soru</label>
+                                            </div>
+                                        </div>
+
+                                        <!-- Options for choice questions -->
+                                        <div id="modalOptionsSection" class="mb-3">
+                                            <label class="form-label">Seçenekler</label>
+                                            <div id="modalOptionsList">
+                                                <!-- Dynamic options -->
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" onclick="addModalOption()">
+                                                <i class="bi bi-plus"></i> Seçenek Ekle
+                                            </button>
+                                        </div>
+
+                                        <!-- Complaint trigger settings -->
+                                        <div class="alert alert-warning mt-3">
+                                            <h6 class="alert-heading"><i class="bi bi-exclamation-triangle me-2"></i>Otomatik Şikayet Ayarı</h6>
+                                            <div class="form-check mt-2">
+                                                <input type="checkbox" class="form-check-input" id="modalTriggerComplaint">
+                                                <label class="form-check-label">Düşük puan şikayet tetiklesin</label>
+                                            </div>
+                                            <div class="mt-2" id="modalThresholdSection" style="display:none;">
+                                                <label class="form-label small">Eşik Değer (Bu değerin altı şikayet oluşturur)</label>
+                                                <input type="number" class="form-control form-control-sm" id="modalThreshold" value="3" min="0" max="10">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                                        <button type="button" class="btn btn-primary" onclick="saveQuestion()">Kaydet</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @section Scripts {
+                            <partial name="_ValidationScriptsPartial" />
+    
+                            <script>
+                                let questions = [];
+                                let editingIndex = -1;
+                                let questionModal;
+
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    questionModal = new bootstrap.Modal(document.getElementById('questionModal'));
+            
+                                    document.getElementById('analysisType').addEventListener('change', function() {
+                                        document.getElementById('analysisMonth').style.display =
+                                            this.value === 'Monthly' ? 'block' : 'none';
+                                    });
+                                });
+
+                                function addQuestion() {
+                                    editingIndex = -1;
+                                    document.getElementById('modalQuestionText').value = '';
+                                    document.getElementById('modalQuestionType').value = '3';
+                                    document.getElementById('modalIsRequired').checked = true;
+                                    document.getElementById('modalTriggerComplaint').checked = false;
+                                    document.getElementById('modalThreshold').value = '3';
+                                    document.getElementById('modalOptionsList').innerHTML = '';
+                                    onQuestionTypeChange();
+                                    questionModal.show();
+                                }
+
+                                function addTemplate(type) {
+                                    let template = {};
+                                    switch(type) {
+                                        case 'nps':
+                                            template = {
+                                                text: "0-10 arası, şirketimizi bir arkadaşınıza tavsiye etme olasılığınız nedir?",
+                                                type: 5,
+                                                required: true,
+                                                triggerComplaint: true,
+                                                threshold: 6,
+                                                options: []
+                                            };
+                                            break;
+                                        case 'rating5':
+                                            template = {
+                                                text: "Hizmetimizden ne kadar memnun kaldınız?",
+                                                type: 3,
+                                                required: true,
+                                                minRating: 1,
+                                                maxRating: 5,
+                                                triggerComplaint: true,
+                                                threshold: 3,
+                                                options: []
+                                            };
+                                            break;
+                                        case 'single':
+                                            template = {
+                                                text: "Bizi tercih etme sebebiniz nedir?",
+                                                type: 1,
+                                                required: true,
+                                                options: [
+                                                    { text: "Fiyat", score: 1 },
+                                                    { text: "Kalite", score: 2 },
+                                                    { text: "Hizmet", score: 3 }
+                                                ]
+                                            };
+                                            break;
+                                        case 'text':
+                                            template = {
+                                                text: "Görüş ve önerileriniz:",
+                                                type: 4,
+                                                required: false,
+                                                options: []
+                                            };
+                                            break;
+                                    }
+                                    questions.push(template);
+                                    renderQuestions();
+                                }
+
+                                function onQuestionTypeChange() {
+                                    const type = parseInt(document.getElementById('modalQuestionType').value);
+                                    const showOptions = [1, 2].includes(type); // Single or Multiple choice
+                                    document.getElementById('modalOptionsSection').style.display = showOptions ? 'block' : 'none';
+            
+                                    const showThreshold = [3, 5].includes(type); // Rating or NPS
+                                    document.getElementById('modalThresholdSection').style.display = showThreshold ? 'block' : 'none';
+            
+                                    if (showOptions && document.getElementById('modalOptionsList').children.length === 0) {
+                                        addModalOption();
+                                        addModalOption();
+                                    }
+                                }
+
+                                function addModalOption() {
+                                    const div = document.createElement('div');
+                                    div.className = 'input-group mb-2';
+                                    div.innerHTML = `
+                                        <input type="text" class="form-control option-text" placeholder="Seçenek metni">
+                                        <input type="number" class="form-control option-score" placeholder="Puan" style="max-width:80px;">
+                                        <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    `;
+                                    document.getElementById('modalOptionsList').appendChild(div);
+                                }
+
+                                function saveQuestion() {
+                                    const text = document.getElementById('modalQuestionText').value.trim();
+                                    if (!text) {
+                                        alert('Soru metni zorunludur!');
+                                        return;
+                                    }
+
+                                    const type = parseInt(document.getElementById('modalQuestionType').value);
+                                    const question = {
+                                        text: text,
+                                        type: type,
+                                        required: document.getElementById('modalIsRequired').checked,
+                                        triggerComplaint: document.getElementById('modalTriggerComplaint').checked,
+                                        threshold: parseInt(document.getElementById('modalThreshold').value) || null,
+                                        options: []
+                                    };
+
+                                    if ([1, 2].includes(type)) {
+                                        const optionDivs = document.querySelectorAll('#modalOptionsList > div');
+                                        optionDivs.forEach(div => {
+                                            const text = div.querySelector('.option-text').value.trim();
+                                            const score = div.querySelector('.option-score').value;
+                                            if (text) {
+                                                question.options.push({ text, score: parseInt(score) || 0 });
+                                            }
+                                        });
+                                    }
+
+                                    if (editingIndex >= 0) {
+                                        questions[editingIndex] = question;
+                                    } else {
+                                        questions.push(question);
+                                    }
+
+                                    renderQuestions();
+                                    questionModal.hide();
+                                }
+
+                                function renderQuestions() {
+                                    const container = document.getElementById('questionsContainer');
+                                    container.innerHTML = '';
+            
+                                    questions.forEach((q, index) => {
+                                        const div = document.createElement('div');
+                                        div.className = 'question-card';
+                                        div.innerHTML = `
+                                            <div class="drag-handle"><i class="bi bi-grip-vertical"></i></div>
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                                        <span class="badge bg-primary">#${index + 1}</span>
+                                                        <span class="badge bg-secondary">${getTypeName(q.type)}</span>
+                                                        ${q.required ? '<span class="badge bg-warning text-dark">Zorunlu</span>' : ''}
+                                                        ${q.triggerComplaint ? '<span class="badge bg-danger"><i class="bi bi-bell"></i> Şikayet Tetikler</span>' : ''}
+                                                    </div>
+                                                    <h6 class="mb-3">${q.text}</h6>
+                                                    ${q.options.length > 0 ? `
+                                                        <div class="small text-muted mb-2">
+                                                            <strong>Seçenekler:</strong> ${q.options.map(o => o.text).join(', ')}
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                                <div class="btn-group">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="editQuestion(${index})">
+                                                        <i class="bi bi-pencil"></i>
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteQuestion(${index})">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        `;
+                                        container.appendChild(div);
+                                    });
+
+                                    document.getElementById('questionCount').textContent = questions.length;
+                                }
+
+                                function getTypeName(type) {
+                                    const names = { 1: 'Tek Seçim', 2: 'Çoklu Seçim', 3: 'Derecelendirme', 4: 'Metin', 5: 'NPS' };
+                                    return names[type] || 'Bilinmiyor';
+                                }
+
+                                function editQuestion(index) {
+                                    editingIndex = index;
+                                    const q = questions[index];
+                                    document.getElementById('modalQuestionText').value = q.text;
+                                    document.getElementById('modalQuestionType').value = q.type;
+                                    document.getElementById('modalIsRequired').checked = q.required;
+                                    document.getElementById('modalTriggerComplaint').checked = q.triggerComplaint || false;
+                                    document.getElementById('modalThreshold').value = q.threshold || 3;
+            
+                                    const optionsList = document.getElementById('modalOptionsList');
+                                    optionsList.innerHTML = '';
+                                    q.options.forEach(opt => {
+                                        const div = document.createElement('div');
+                                        div.className = 'input-group mb-2';
+                                        div.innerHTML = `
+                                            <input type="text" class="form-control option-text" value="${opt.text}" placeholder="Seçenek metni">
+                                            <input type="number" class="form-control option-score" value="${opt.score}" placeholder="Puan" style="max-width:80px;">
+                                            <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        `;
+                                        optionsList.appendChild(div);
+                                    });
+            
+                                    onQuestionTypeChange();
+                                    questionModal.show();
+                                }
+
+                                function deleteQuestion(index) {
+                                    if (confirm('Bu soruyu silmek istediğinize emin misiniz?')) {
+                                        questions.splice(index, 1);
+                                        renderQuestions();
+                                    }
+                                }
+
+                                function prepareSubmit() {
+                                    if (questions.length === 0) {
+                                        alert('En az bir soru eklemelisiniz!');
+                                        return false;
+                                    }
+                                    document.getElementById('questionsJson').value = JSON.stringify(questions);
+                                    return true;
+                                }
+                            </script>
+                        }

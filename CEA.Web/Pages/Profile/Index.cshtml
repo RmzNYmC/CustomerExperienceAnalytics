@@ -1,0 +1,65 @@
+﻿@page
+@model CEA.Web.Pages.Profile.IndexModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Profilim";
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="stat-card">
+            <h5 class="mb-4">Profil Bilgilerim</h5>
+            
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Ad</label>
+                    <input asp-for="Input.FirstName" class="form-control" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Soyad</label>
+                    <input asp-for="Input.LastName" class="form-control" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">E-posta</label>
+                    <input asp-for="Input.Email" class="form-control" disabled />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Departman</label>
+                    <input asp-for="Input.Department" class="form-control" />
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Güncelle</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="stat-card">
+            <h5 class="mb-4">Şifre Değiştir</h5>
+            
+            <form method="post" asp-page-handler="ChangePassword">
+                <div class="mb-3">
+                    <label class="form-label">Mevcut Şifre</label>
+                    <input name="CurrentPassword" type="password" class="form-control" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Yeni Şifre</label>
+                    <input name="NewPassword" type="password" class="form-control" />
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Yeni Şifre Tekrar</label>
+                    <input name="ConfirmPassword" type="password" class="form-control" />
+                </div>
+                
+                <button type="submit" class="btn btn-warning">Şifre Değiştir</button>
+            </form>
+        </div>
+    </div>
+</div>
