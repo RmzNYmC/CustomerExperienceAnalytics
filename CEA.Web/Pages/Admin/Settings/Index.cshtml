@@ -1,0 +1,137 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Settings.IndexModel
+@{
+    ViewData["Title"] = "Sistem Ayarları";
+    Layout = "_Layout";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4><i class="fas fa-cogs me-2"></i>Sistem Ayarları</h4>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success glass-card border-success mb-4">
+        <i class="fas fa-check-circle me-2"></i>@Model.SuccessMessage
+    </div>
+}
+
+<div class="row g-4">
+    <!-- SMTP Ayarları -->
+    <div class="col-lg-6">
+        <div class="glass-card p-4">
+            <h5 class="mb-4 text-warning">
+                <i class="fas fa-envelope me-2"></i>SMTP Mail Ayarları
+            </h5>
+            
+            <form method="post" asp-page-handler="SaveSmtp">
+                <div class="mb-3">
+                    <label class="form-label text-white">SMTP Sunucu (Host)</label>
+                    <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                           asp-for="SmtpSettings.Host" placeholder="smtp.gmail.com" required>
+                        <small class="text-white/50">Örn: smtp.gmail.com, smtp.outlook.com, mail.yourdomain.com</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-white">Port</label>
+                        <input type="number" class="form-control bg-white/10 border-white/20 text-white"
+                               asp-for="SmtpSettings.Port" placeholder="587" required>
+                            <small class="text-white/50">Genellikle 587 (TLS) veya 465 (SSL)</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white">Gönderici Adı</label>
+                            <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                                   asp-for="SmtpSettings.FromName" placeholder="Turkon Lojistik" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white">Gönderici E-posta</label>
+                                <input type="email" class="form-control bg-white/10 border-white/20 text-white"
+                                       asp-for="SmtpSettings.FromEmail" placeholder="noreply@turkon.com" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label text-white">Kullanıcı Adı (E-posta)</label>
+                                    <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                                           asp-for="SmtpSettings.Username" placeholder="email@gmail.com" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label text-white">Şifre / App Password</label>
+                                        <div class="input-group">
+                                            <input type="password" class="form-control bg-white/10 border-white/20 text-white"
+                                                   asp-for="SmtpSettings.Password" id="smtpPassword" required>
+                                                <button type="button" class="btn btn-outline-light" onclick="togglePassword('smtpPassword')">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            </div>
+                                            <small class="text-white/50">Gmail kullanıyorsan "App Password" kullanmalısın</small>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-center mt-4">
+                                            <button type="button" class="btn btn-outline-info" onclick="testConnection()">
+                                                <i class="fas fa-plug me-2"></i>Bağlantı Testi
+                                            </button>
+                                            <button type="submit" class="btn btn-glass-primary">
+                                                <i class="fas fa-save me-2"></i>Kaydet
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Test Mail Gönderme -->
+                            <div class="col-lg-6">
+                                <div class="glass-card p-4">
+                                    <h5 class="mb-4 text-success">
+                                        <i class="fas fa-paper-plane me-2"></i>Test Mail Gönder
+                                    </h5>
+            
+                                    <form method="post" asp-page-handler="SendTest">
+                                        <div class="mb-3">
+                                            <label class="form-label text-white">Test Alıcı E-posta</label>
+                                            <input type="email" class="form-control bg-white/10 border-white/20 text-white"
+                                                   asp-for="TestEmail" placeholder="test@example.com" required>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label text-white">Mesaj (Opsiyonel)</label>
+                                                <textarea class="form-control bg-white/10 border-white/20 text-white"
+                                                          asp-for="TestMessage" rows="4"
+                                                          placeholder="Bu bir test mailidir..."></textarea>
+                                            </div>
+
+                                            <button type="submit" class="btn btn-glass-success w-100">
+                                                <i class="fas fa-paper-plane me-2"></i>Test Maili Gönder
+                                            </button>
+                                        </form>
+
+                                        <hr class="my-4 border-white/20">
+
+                                        <div class="alert alert-info bg-white/5 border-white/20">
+                                            <h6 class="text-info"><i class="fas fa-info-circle me-2"></i>Bilgi</h6>
+                                            <ul class="small text-white/70 mb-0 ps-3">
+                                                <li>Gmail için 2FA açıksa "App Password" kullanın</li>
+                                                <li>Outlook için "Modern Authentication" gerekli</li>
+                                                <li>Şirket maili için IT departmanından bilgi alın</li>
+                                                <li>Port 587 yerine 25 veya 465 deneyebilirsiniz</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @section Scripts {
+                                <script>
+                                    function togglePassword(inputId) {
+                                        const input = document.getElementById(inputId);
+                                        input.type = input.type === 'password' ? 'text' : 'password';
+                                    }
+
+                                    async function testConnection() {
+                                        // Basit bir test için alert göster
+                                        alert('Bağlantı testi için Test Mail Gönder butonunu kullanın.');
+                                    }
+                                </script>
+                            }

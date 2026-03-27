@@ -20,6 +20,7 @@ namespace CEA.Data
         public DbSet<Answer> Answers { get; set; } = null!;
         public DbSet<Complaint> Complaints { get; set; } = null!;
         public DbSet<ComplaintNote> ComplaintNotes { get; set; } = null!;
+        public DbSet<Setting> Settings { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

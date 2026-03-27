@@ -1,0 +1,230 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Surveys.SendMailModel
+@{
+    ViewData["Title"] = "Anket Mail Gönderimi";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Başlık -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h4 class="mb-1">
+                    <i class="fas fa-envelope text-warning me-2"></i>
+                    Anket Mail Gönderimi
+                </h4>
+                <p class="text-white/60 mb-0">@Model.SurveyTitle</p>
+            </div>
+            <a href="/Admin/Surveys/Index" class="btn btn-outline-light">
+                <i class="fas fa-arrow-left me-2"></i>Geri Dön
+            </a>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success glass-card border-success">
+                <i class="fas fa-check-circle me-2"></i>@Model.SuccessMessage
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger glass-card border-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>@Model.ErrorMessage
+            </div>
+        }
+
+        <form method="post" class="needs-validation" novalidate>
+            <input type="hidden" asp-for="SurveyId" />
+
+            <div class="row g-4">
+                <!-- Sol Kolon: Müşteri Listesi -->
+                <div class="col-lg-5">
+                    <div class="glass-card p-4 h-100">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0">
+                                <i class="fas fa-users me-2"></i>Müşteri Listesi
+                            </h5>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-light" onclick="selectAll(true)">
+                                    Tümünü Seç
+                                </button>
+                                <button type="button" class="btn btn-outline-light" onclick="selectAll(false)">
+                                    Temizle
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <span class="input-group-text bg-white/10 border-white/20 text-white">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                                <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                                       id="customerSearch" placeholder="Müşteri ara..." onkeyup="filterCustomers()">
+                            </div>
+                        </div>
+
+                        <div class="customer-list" style="max-height: 400px; overflow-y: auto;">
+                            @if (Model.Customers.Any())
+                            {
+                                @foreach (var customer in Model.Customers)
+                                {
+                                    <div class="customer-item p-3 mb-2 rounded border border-white/10 hover:bg-white/5 transition cursor-pointer"
+                                         onclick="toggleCustomer(@customer.Id)">
+                                        <div class="d-flex align-items-center">
+                                            <div class="form-check">
+                                                <input class="form-check-input customer-checkbox"
+                                                       type="checkbox"
+                                                       name="SelectedCustomerIds"
+                                                       value="@customer.Id"
+                                                       id="cust_@customer.Id"
+                                                @(customer.HasResponded ? "disabled" : "")>
+                                            </div>
+                                            <div class="ms-3 flex-grow-1">
+                                                <div class="fw-semibold text-white">@(customer.Name ?? "İsimsiz")</div>
+                                                <div class="small text-white/60">@customer.Email</div>
+                                                @if (customer.HasResponded)
+                                                {
+                                                    <span class="badge badge-glass-success mt-1">
+                                                        <i class="fas fa-check me-1"></i>Yanıt Verildi
+                                                    </span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center text-white/50 py-5">
+                                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                                    <p>Müşteri bulunamadı.</p>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="mt-3 p-3 bg-white/5 rounded">
+                            <div class="d-flex justify-content-between text-white">
+                                <span>Seçilen:</span>
+                                <span class="fw-bold" id="selectedCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sağ Kolon: Mail İçeriği -->
+                <div class="col-lg-7">
+                    <div class="glass-card p-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-edit me-2"></i>Mail İçeriği
+                        </h5>
+
+                        <div class="mb-3">
+                            <label class="form-label text-white">Mail Konusu</label>
+                            <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                                   asp-for="MailSubject" required
+                                   placeholder="Anket davetiyesi...">
+                                <span asp-validation-for="MailSubject" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white">Kişisel Mesaj (Opsiyonel)</label>
+                                <textarea class="form-control bg-white/10 border-white/20 text-white"
+                                          asp-for="PersonalMessage" rows="4"
+                                          placeholder="Değerli müşterimiz, memnuniyet ankemize katılarak bize yardımcı olabilirsiniz..."></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-white">Önizleme</label>
+                                <div class="p-3 bg-white/5 rounded border border-white/10">
+                                    <div class="small text-white/60 mb-2">Müşteriye gidecek mail:</div>
+                                    <div class="p-3 bg-white rounded text-dark">
+                                        <div class="fw-bold mb-2" id="previewSubject">Konu: @(Model.MailSubject ?? "Anket Davetiyesi")</div>
+                                        <hr class="my-2">
+                                        <p>Sayın <span class="fw-bold">[Müşteri Adı]</span>,</p>
+                                        <p id="previewMessage">
+                                            @(string.IsNullOrEmpty(Model.PersonalMessage)
+                                                ? "Turkon Lojistik olarak sizden aldığımız hizmetlerimiz hakkında geri bildirim rica ediyoruz."
+                                                : Model.PersonalMessage)
+                                        </p>
+                                        <p>Anketimize katılmak için aşağıdaki bağlantıya tıklayabilirsiniz:</p>
+                                        <a href="#" class="btn btn-primary btn-sm">Ankete Katıl</a>
+                                        <hr class="my-2">
+                                        <small class="text-muted">Turkon Lojistik CEA Sistemi</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center mt-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" asp-for="SendReminder">
+                                        <label class="form-check-label text-white" asp-for="SendReminder">
+                                            Daha önce yanıt verenlere de gönder
+                                        </label>
+                                    </div>
+                                    <button type="submit" class="btn btn-glass-primary btn-lg" id="sendBtn" disabled>
+                                        <i class="fas fa-paper-plane me-2"></i>
+                                        Mail Gönder
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @section Scripts {
+            <partial name="_ValidationScriptsPartial" />
+            <script>
+                // Önizleme güncelleme
+                document.getElementById('MailSubject').addEventListener('input', function() {
+                    document.getElementById('previewSubject').textContent = 'Konu: ' + (this.value || 'Anket Davetiyesi');
+                });
+
+                document.getElementById('PersonalMessage').addEventListener('input', function() {
+                    document.getElementById('previewMessage').textContent = this.value || 'Turkon Lojistik olarak sizden aldığımız hizmetlerimiz hakkında geri bildirim rica ediyoruz.';
+                });
+
+                // Müşteri seçimi
+                function toggleCustomer(id) {
+                    const checkbox = document.getElementById('cust_' + id);
+                    if (!checkbox.disabled) {
+                        checkbox.checked = !checkbox.checked;
+                        updateSelectedCount();
+                    }
+                }
+
+                function selectAll(select) {
+                    document.querySelectorAll('.customer-checkbox:not(:disabled)').forEach(cb => {
+                        cb.checked = select;
+                    });
+                    updateSelectedCount();
+                }
+
+                function updateSelectedCount() {
+                    const count = document.querySelectorAll('.customer-checkbox:checked').length;
+                    document.getElementById('selectedCount').textContent = count;
+                    document.getElementById('sendBtn').disabled = count === 0;
+                }
+
+                // Müşteri filtreleme
+                function filterCustomers() {
+                    const search = document.getElementById('customerSearch').value.toLowerCase();
+                    document.querySelectorAll('.customer-item').forEach(item => {
+                        const text = item.textContent.toLowerCase();
+                        item.style.display = text.includes(search) ? '' : 'none';
+                    });
+                }
+
+                // Checkbox değişimlerini dinle
+                document.querySelectorAll('.customer-checkbox').forEach(cb => {
+                    cb.addEventListener('change', updateSelectedCount);
+                });
+
+                // İlk yüklemede sayıyı güncelle
+                updateSelectedCount();
+            </script>
+        }

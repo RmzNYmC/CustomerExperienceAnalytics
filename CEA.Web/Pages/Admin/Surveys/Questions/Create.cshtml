@@ -1,0 +1,167 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Surveys.Questions.CreateModel
+@using CEA.Core.Enums
+@{
+    ViewData["Title"] = "Yeni Soru Ekle";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4><i class="fas fa-plus-circle me-2"></i>Yeni Soru Ekle</h4>
+            <a href="/Admin/Surveys/Edit?id=@Model.SurveyId" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Geri Dön
+            </a>
+        </div>
+
+        <div class="glass-card p-4">
+            <div asp-validation-summary="All" class="alert alert-danger" style="display: @(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+
+            <form method="post" asp-route-surveyId="@Model.SurveyId">
+                <input type="hidden" asp-for="Question.SurveyId" />
+                <input type="hidden" asp-for="Question.DisplayOrder" />
+                <input type="hidden" asp-for="Question.CreatedAt" />
+
+                <div class="mb-3">
+                    <label class="form-label text-white">Soru Metni <span class="text-danger">*</span></label>
+                    <textarea class="form-control bg-white/10 border-white/20 text-black"
+                              asp-for="Question.Text" rows="3" required placeholder="Soruyu buraya yazın..."></textarea>
+                    <span asp-validation-for="Question.Text" class="text-danger"></span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-white">Soru Tipi</label>
+                        <select class="form-select bg-white/10 border-white/20 text-black"
+                                asp-for="Question.QuestionType"
+                                id="questionType"
+                                onchange="toggleTypeFields(this.value)">
+                            @foreach (var type in Enum.GetValues(typeof(QuestionType)))
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white">Sıra No</label>
+                        <input type="number" class="form-control bg-white/10 border-white/20 text-black"
+                               asp-for="Question.DisplayOrder" min="1">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" asp-for="Question.IsRequired">
+                                <label class="form-check-label text-white">Zorunlu Soru</label>
+                            </div>
+                        </div>
+
+                        <!-- Rating Scale Ayarları -->
+                        <div id="ratingSettings" class="mb-3 p-3 bg-white/5 rounded" style="display: none;">
+                            <label class="form-label text-white">Rating Aralığı</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <input type="number" class="form-control bg-white/10 border-white/20 text-black"
+                                           asp-for="Question.MinRating" placeholder="Min (örn: 1)" value="1">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="number" class="form-control bg-white/10 border-white/20 text-whblackite"
+                                               asp-for="Question.MaxRating" placeholder="Max (örn: 5)" value="5">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Seçenekler (Single/Multiple Choice için) -->
+                                <div id="optionsContainer" class="mb-3 p-3 bg-white/5 rounded">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <label class="form-label text-white mb-0">Seçenekler</label>
+                                        <button type="button" class="btn btn-sm btn-glass-success" onclick="addOption()">
+                                            <i class="fas fa-plus me-1"></i>Seçenek Ekle
+                                        </button>
+                                    </div>
+                                    <div id="optionsList">
+                                        <div class="input-group mb-2">
+                                            <input type="text" name="Options[0].Text"
+                                                   class="form-control bg-white/10 border-white/20 text-black"
+                                                   placeholder="Seçenek 1">
+                                        </div>
+                                        <div class="input-group mb-2">
+                                            <input type="text" name="Options[1].Text"
+                                                   class="form-control bg-white/10 border-white/20 text-black"
+                                                   placeholder="Seçenek 2">
+                                        </div>
+                                    </div>
+                                    <small class="text-white/50 d-block mt-2" id="optionsHelp">
+                                        * Single/Multiple Choice için en az 2 seçenek gerekli
+                                    </small>
+                                </div>
+
+                                <div class="d-flex justify-content-end gap-2 mt-4">
+                                    <a href="/Admin/Surveys/Edit?id=@Model.SurveyId" class="btn btn-outline-light">İptal</a>
+                                    <button type="submit" class="btn btn-glass-primary">
+                                        <i class="fas fa-save me-2"></i>Kaydet
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                @section Scripts {
+                    <script>
+                        function toggleTypeFields(type) {
+                            const ratingDiv = document.getElementById('ratingSettings');
+                            const optionsDiv = document.getElementById('optionsContainer');
+                            const optionsHelp = document.getElementById('optionsHelp');
+            
+                            // Tümü gizle
+                            ratingDiv.style.display = 'none';
+            
+                            // Tip'e göre göster
+                            if (type === 'RatingScale') {
+                                ratingDiv.style.display = 'block';
+                                optionsDiv.style.display = 'none'; // Seçenek gerekmez
+                            } else if (type === 'SingleChoice' || type === 'MultipleChoice') {
+                                ratingDiv.style.display = 'none';
+                                optionsDiv.style.display = 'block';
+                                optionsHelp.textContent = '* En az 2 seçenek gerekli';
+                
+                                // Seçenek inputlarını required yap
+                                document.querySelectorAll('#optionsList input').forEach(input => {
+                                    input.required = true;
+                                });
+                            } else if (type === 'NpsScore' || type === 'TextOpen') {
+                                ratingDiv.style.display = 'none';
+                                optionsDiv.style.display = 'none'; // Bu tipler için seçenek yok
+                
+                                // Seçenek inputlarını required'dan kaldır
+                                document.querySelectorAll('#optionsList input').forEach(input => {
+                                    input.required = false;
+                                });
+                            }
+                        }
+
+                        let optionIndex = 2;
+                        function addOption() {
+                            const container = document.getElementById('optionsList');
+                            const div = document.createElement('div');
+                            div.className = 'input-group mb-2';
+                            div.innerHTML = `
+                                <input type="text" name="Options[${optionIndex}].Text"
+                                       class="form-control bg-white/10 border-white/20 text-white"
+                                       placeholder="Seçenek ${optionIndex + 1}" required>
+                                <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                            container.appendChild(div);
+                            optionIndex++;
+                        }
+
+                        // Sayfa yüklenince tipi kontrol et
+                        document.addEventListener('DOMContentLoaded', function() {
+                            toggleTypeFields(document.getElementById('questionType').value);
+                        });
+                    </script>
+                }

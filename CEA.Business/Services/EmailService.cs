@@ -1,116 +1,130 @@
 ﻿using MailKit.Net.Smtp;
 using MimeKit;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
 namespace CEA.Business.Services
 {
-    public interface IEmailService
-    {
-        Task SendComplaintNotificationAsync(string toEmail, string complaintNumber, string customerName, string description);
-        Task SendSurveyInvitationAsync(string toEmail, string surveyTitle, string surveyUrl);
-        Task SendPasswordResetAsync(string toEmail, string resetLink);
-    }
-
     public class EmailService : IEmailService
     {
+        private readonly ISettingsService _settingsService;
         private readonly IConfiguration _configuration;
-        private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
+        public EmailService(ISettingsService settingsService, IConfiguration configuration)
         {
+            _settingsService = settingsService;
             _configuration = configuration;
-            _logger = logger;
         }
 
-        private async Task SendEmailAsync(string toEmail, string subject, string htmlBody)
+        // Ana metod
+        public async Task SendEmailAsync(string to, string subject, string htmlBody)
         {
-            var emailSettings = _configuration.GetSection("EmailSettings");
+            var settings = await GetSmtpSettingsAsync();
 
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(
-                emailSettings["SenderName"],
-                emailSettings["SenderEmail"]
-            ));
-            message.To.Add(MailboxAddress.Parse(toEmail));
-            message.Subject = subject;
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress(settings.FromName, settings.FromEmail));
+            email.To.Add(MailboxAddress.Parse(to));
+            email.Subject = subject;
 
-            var bodyBuilder = new BodyBuilder { HtmlBody = htmlBody };
-            message.Body = bodyBuilder.ToMessageBody();
+            var builder = new BodyBuilder { HtmlBody = htmlBody };
+            email.Body = builder.ToMessageBody();
 
-            using var client = new SmtpClient();
-            try
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(settings.Host, settings.Port, MailKit.Security.SecureSocketOptions.StartTls);
+
+            if (!string.IsNullOrEmpty(settings.Username))
             {
-                await client.ConnectAsync(
-                    emailSettings["SmtpServer"],
-                    int.Parse(emailSettings["SmtpPort"]!),
-                    MailKit.Security.SecureSocketOptions.StartTls
-                );
-
-                await client.AuthenticateAsync(
-                    emailSettings["Username"],
-                    emailSettings["Password"]
-                );
-
-                await client.SendAsync(message);
-                await client.DisconnectAsync(true);
-
-                _logger.LogInformation("Email sent successfully to {Email}", toEmail);
+                await smtp.AuthenticateAsync(settings.Username, settings.Password);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
-                throw;
-            }
+
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
         }
 
-        public async Task SendComplaintNotificationAsync(string toEmail, string complaintNumber,
-            string customerName, string description)
+        // Eski sync metod
+        public void SendEmail(string to, string subject, string body)
         {
-            var subject = $"Yeni Şikayet Kaydı: {complaintNumber}";
-            var body = $@"
-                <h2>Yeni Müşteri Şikayeti</h2>
-                <p><strong>Şikayet No:</strong> {complaintNumber}</p>
-                <p><strong>Müşteri:</strong> {customerName}</p>
-                <p><strong>Açıklama:</strong> {description}</p>
-                <p><strong>Tarih:</strong> {DateTime.Now:dd.MM.yyyy HH:mm}</p>
-                <hr>
-                <p>Şikayeti görüntülemek için <a href='{_configuration["AppSettings:BaseUrl"]}/Complaints/Details/{complaintNumber}'>tıklayınız</a>.</p>
-            ";
-
-            await SendEmailAsync(toEmail, subject, body);
+            SendEmailAsync(to, subject, body).GetAwaiter().GetResult();
         }
 
-        public async Task SendSurveyInvitationAsync(string toEmail, string surveyTitle, string surveyUrl)
+        // ŞİKAYET BİLDİRİMİ - 4 Parametre (ComplaintAutomationService için)
+        // 4 PARAMETRELİ (Ana implementasyon)
+        public async Task SendComplaintNotificationAsync(string to, string ticketNumber, string customerName, string description)
         {
-            var subject = $"Anket Daveti: {surveyTitle}";
-            var body = $@"
-                <h2>Müşteri Deneyimi Anketi</h2>
-                <p>Değerli müşterimiz,</p>
-                <p>Hizmet kalitemizi artırmak için görüşlerinizi önemsiyoruz. 
-                Aşağıdaki bağlantıdan <strong>{surveyTitle}</strong> anketimize katılabilirsiniz:</p>
-                <p style='text-align: center; margin: 30px 0;'>
-                    <a href='{surveyUrl}' style='background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;'>Ankete Katıl</a>
+            var subject = $"Yeni Şikayet: {ticketNumber}";
+
+            var htmlBody = $@"
+        <html>
+        <body style='font-family: Arial, sans-serif; line-height: 1.6; color: #333;'>
+            <div style='max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #dc2626; border-radius: 8px;'>
+                <h2 style='color: #dc2626; margin-top: 0;'>
+                    <i class='fas fa-exclamation-triangle'></i> Yeni Şikayet Bildirimi
+                </h2>
+                
+                <table style='width: 100%; border-collapse: collapse;'>
+                    <tr>
+                        <td style='padding: 8px; border-bottom: 1px solid #eee; font-weight: bold; width: 120px;'>Ticket No:</td>
+                        <td style='padding: 8px; border-bottom: 1px solid #eee;'>{ticketNumber}</td>
+                    </tr>
+                    <tr>
+                        <td style='padding: 8px; border-bottom: 1px solid #eee; font-weight: bold;'>Müşteri:</td>
+                        <td style='padding: 8px; border-bottom: 1px solid #eee;'>{customerName}</td>
+                    </tr>
+                </table>
+                
+                <div style='margin-top: 20px; padding: 15px; background-color: #fef2f2; border-left: 4px solid #dc2626; border-radius: 4px;'>
+                    <h4 style='margin-top: 0; color: #991b1b;'>Şikayet Detayı:</h4>
+                    <p style='margin-bottom: 0; white-space: pre-wrap;'>{description}</p>
+                </div>
+                
+                <div style='margin-top: 20px; text-align: center;'>
+                    <a href='#' style='display: inline-block; padding: 12px 24px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;'>
+                        Şikayeti Görüntüle
+                    </a>
+                </div>
+                
+                <hr style='margin: 30px 0; border: none; border-top: 1px solid #e5e7eb;' />
+                <p style='font-size: 12px; color: #6b7280; text-align: center;'>
+                    Bu mail Turkon Lojistik CEA Sistemi tarafından otomatik olarak gönderilmiştir.<br>
+                    Ticket: {ticketNumber}
                 </p>
-                <p>Anket yaklaşık 3-5 dakika sürecektir.</p>
-                <p>Saygılarımızla,<br>{_configuration["AppSettings:CompanyName"]}</p>
-            ";
+            </div>
+        </body>
+        </html>";
 
-            await SendEmailAsync(toEmail, subject, body);
+            await SendEmailAsync(to, subject, htmlBody);
         }
 
-        public async Task SendPasswordResetAsync(string toEmail, string resetLink)
+        // 3 PARAMETRELİ (4 parametreli olanı çağırır, müşteri adı "Belirtilmemiş" olarak gider)
+        public async Task SendComplaintNotificationAsync(string to, string ticketNumber, string description)
         {
-            var subject = "Şifre Sıfırlama Talebi";
-            var body = $@"
-                <h2>Şifre Sıfırlama</h2>
-                <p>Şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın:</p>
-                <p><a href='{resetLink}'>Şifremi Sıfırla</a></p>
-                <p>Bu bağlantı 24 saat geçerlidir.</p>
-                <p>Eğer bu talebi siz yapmadıysanız, bu e-postayı görmezden gelin.</p>
-            ";
-
-            await SendEmailAsync(toEmail, subject, body);
+            await SendComplaintNotificationAsync(to, ticketNumber, "Belirtilmemiş", description);
         }
+
+        // Yardımcı metod
+        private async Task<SmtpSettings> GetSmtpSettingsAsync()
+        {
+            var portStr = await _settingsService.GetSettingAsync("SMTP_Port", "587");
+
+            return new SmtpSettings
+            {
+                Host = await _settingsService.GetSettingAsync("SMTP_Host", "smtp.gmail.com"),
+                Port = int.TryParse(portStr, out var port) ? port : 587,
+                Username = await _settingsService.GetSettingAsync("SMTP_Username", ""),
+                Password = await _settingsService.GetSettingAsync("SMTP_Password", ""),
+                FromEmail = await _settingsService.GetSettingAsync("SMTP_From", "noreply@turkon.com"),
+                FromName = await _settingsService.GetSettingAsync("SMTP_FromName", "Turkon Lojistik")
+            };
+        }
+    }
+
+    internal class SmtpSettings
+    {
+        public string Host { get; set; } = string.Empty;
+        public int Port { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string FromEmail { get; set; } = string.Empty;
+        public string FromName { get; set; } = string.Empty;
     }
 }

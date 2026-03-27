@@ -1,22 +1,310 @@
-html {
-  font-size: 14px;
-}
+/* TURKON TEMA - GLASSMORPHISM STILLERI */
 
-@media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
-}
-
+/* Genel Ayarlar */
 body {
-  margin-bottom: 60px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Glassmorphism Kartlar */
+.glass-card {
+    background: rgba(30, 58, 138, 0.3);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+    .glass-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+    }
+
+/* Sidebar Menü Öğeleri */
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-bottom: 0.25rem;
+    border-left: 3px solid transparent;
+}
+
+    .sidebar-item:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: white;
+        transform: translateX(5px);
+    }
+
+    .sidebar-item.active {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border-left-color: #06b6d4;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+/* İstatistik Kartları (Emoji'li) */
+.stat-card-turkon {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+    .stat-card-turkon:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.15);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+/* Scrollbar Stilleri */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+/* Gauge Chart Container */
+.gauge-container {
+    position: relative;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gauge-center {
+    position: absolute;
+    bottom: 20px;
+    text-align: center;
+}
+
+/* Animasyonlar */
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(14, 165, 233, 0.5);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(14, 165, 233, 0.8);
+    }
+}
+
+.glow-effect {
+    animation: pulse-glow 2s infinite;
+}
+
+/* Input Stilleri */
+input::placeholder, textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* Tablolar için Glass Efekti */
+.glass-table {
+    background: rgba(30, 58, 138, 0.3); /* Mavi tonlu şeffaf arka plan */
+    backdrop-filter: blur(10px);
+    border-radius: 1rem;
+    overflow: hidden;
+    width: 100%;
+    margin-bottom: 0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+    .glass-table thead {
+        background: rgba(255, 255, 255, 0.1);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .glass-table th {
+        color: white !important; /* Beyaz başlık yazısı */
+        font-weight: 600;
+        padding: 1.25rem 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        white-space: nowrap;
+        font-size: 0.95rem;
+    }
+    .glass-table td {
+        color: rgba(255, 255, 255, 0.9) !important; /* Beyaz içerik yazısı */
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+
+    .glass-table tbody tr:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transition: background 0.3s ease;
+    }
+
+    /* Tablo içindeki linkler */
+    .glass-table a {
+        color: #60a5fa; /* Açık mavi */
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+        .glass-table a:hover {
+            color: #93c5fd; /* Daha açık mavi */
+            text-decoration: underline;
+        }
+
+    /* Code elementi (Token gösterimi) */
+    .glass-table code {
+        background: rgba(0, 0, 0, 0.3) !important;
+        color: #fcd34d !important; /* Sarımsı kod rengi */
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+/* Badge Renkleri (Glassmorphism uyumlu) */
+.badge-glass-success {
+    background: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-glass-warning {
+    ackground: rgba(234, 179, 8, 0.2);
+    color: #fde047;
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.badge-glass-danger {
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+.badge-glass-secondary {
+    background: rgba(148, 163, 184, 0.2);
+    color: #e2e8f0;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    padding: 0.5rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Buton Stilleri */
+.btn-glass-primary {
+    background: rgba(37, 99, 235, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+    .btn-glass-primary:hover {
+        background: rgba(37, 99, 235, 1);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+    }
+.btn-group-sm > .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+/* Yıldız Rating */
+.star-rating {
+    color: #fbbf24;
+    font-size: 1.5rem;
+}
+
+    .star-rating .empty {
+        color: rgba(255, 255, 255, 0.2);
+    }
+
+/* Responsive Ayarlamalar */
+@media (max-width: 768px) {
+    .gauge-container {
+        height: 200px;
+    }
+}
+/* Butonlar - Koyu tema için */
+.glass-table .btn-outline-light {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+    .glass-table .btn-outline-light:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+
+.glass-table .btn-outline-success {
+    border-color: rgba(34, 197, 94, 0.5);
+    color: #86efac;
+}
+
+    .glass-table .btn-outline-success:hover {
+        background: rgba(34, 197, 94, 0.2);
+        color: white;
+    }
+
+.glass-table .btn-outline-info {
+    border-color: rgba(59, 130, 246, 0.5);
+    color: #93c5fd;
+}
+
+    .glass-table .btn-outline-info:hover {
+        background: rgba(59, 130, 246, 0.2);
+        color: white;
+    }
+
+.glass-table .btn-outline-warning {
+    border-color: rgba(234, 179, 8, 0.5);
+    color: #fcd34d;
+}
+
+    .glass-table .btn-outline-warning:hover {
+        background: rgba(234, 179, 8, 0.2);
+        color: white;
+    }
+
+.glass-table .btn-outline-danger {
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fca5a5;
+}
+
+    .glass-table .btn-outline-danger:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: white;
+    }
+
+/* Buton grubu arka planı */
+.btn-group {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 0.25rem;
+    border-radius: 0.5rem;
 }

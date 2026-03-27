@@ -1,0 +1,187 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Surveys.Questions.EditModel
+@using CEA.Core.Enums
+@{
+    ViewData["Title"] = "Soru Düzenle";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4>
+                <i class="fas fa-edit me-2"></i>Soru Düzenle
+            </h4>
+            <a href="/Admin/Surveys/Edit?id=@Model.Question.SurveyId" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Geri Dön
+            </a>
+        </div>
+
+        <div class="glass-card p-4">
+            <form method="post">
+                <input type="hidden" asp-for="Question.Id" />
+                <input type="hidden" asp-for="Question.SurveyId" />
+                <input type="hidden" asp-for="Question.CreatedAt" />
+
+                <div asp-validation-summary="All" class="alert alert-danger" style="display: @(ViewData.ModelState.IsValid ? "none" : "block")"></div>
+
+                <div class="mb-3">
+                    <label class="form-label text-white">Soru Metni <span class="text-danger">*</span></label>
+                    <textarea class="form-control bg-white/10 border-white/20 text-black"
+                              asp-for="Question.Text" rows="3" required></textarea>
+                    <span asp-validation-for="Question.Text" class="text-danger"></span>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-white">Soru Tipi</label>
+                        <select class="form-select bg-white/10 border-white/20 text-black"
+                                asp-for="Question.QuestionType"
+                                id="questionType"
+                                onchange="toggleOptions(this.value)">
+                            @foreach (var type in Enum.GetValues(typeof(QuestionType)))
+                            {
+                                <option value="@type" selected="@(Model.Question.QuestionType.ToString() == type.ToString())">
+                                    @type
+                                </option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-white">Sıra No</label>
+                        <input type="number" class="form-control bg-white/10 border-white/20 text-black"
+                               asp-for="Question.DisplayOrder" min="1">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" asp-for="Question.IsRequired">
+                                <label class="form-check-label text-white">Zorunlu Soru</label>
+                            </div>
+                        </div>
+
+                        <!-- Rating Ayarları (RatingScale için) -->
+                        @if (Model.Question.QuestionType == QuestionType.RatingScale)
+                        {
+                            <div id="ratingSettings" class="mb-3 p-3 bg-white/5 rounded">
+                                <label class="form-label text-white">Rating Aralığı</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="number" class="form-control bg-white/10 border-white/20 text-black"
+                                               asp-for="Question.MinRating" placeholder="Min (örn: 1)">
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="number" class="form-control bg-white/10 border-white/20 text-black"
+                                                   asp-for="Question.MaxRating" placeholder="Max (örn: 5)">
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- Seçenekler (Single/Multiple Choice için) -->
+                                @if (Model.Question.QuestionType == QuestionType.SingleChoice || Model.Question.QuestionType == QuestionType.MultipleChoice)
+                                {
+                                    <div id="optionsContainer" class="mb-3 p-3 bg-white/5 rounded">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <label class="form-label text-white mb-0">Seçenekler</label>
+                                            <button type="button" class="btn btn-sm btn-glass-success" onclick="addNewOption()">
+                                                <i class="fas fa-plus me-1"></i>Yeni Seçenek
+                                            </button>
+                                        </div>
+
+                                        <!-- Mevcut Seçenekler -->
+                                        <div id="existingOptions">
+                                            @foreach (var option in Model.Question.Options.Where(o => !o.IsDeleted).OrderBy(o => o.DisplayOrder))
+                                            {
+                                                <div class="input-group mb-2 existing-option" data-option-id="@option.Id">
+                                                    <input type="hidden" name="ExistingOptionIds" value="@option.Id" />
+                                                    <input type="text" name="ExistingOptionTexts"
+                                                           class="form-control bg-white/10 border-white/20 text-black"
+                                                           value="@option.Text" required>
+                                                    <button type="button" class="btn btn-outline-danger" onclick="removeExistingOption(this)">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <!-- Yeni Seçenekler Buraya Eklenecek -->
+                                        <div id="newOptions"></div>
+
+                                        <small class="text-white/50 d-block mt-2">
+                                            * En az 2 seçenek bırakmalısınız
+                                        </small>
+                                    </div>
+                                }
+
+                                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top border-white/10">
+                                    <button type="button" class="btn btn-outline-danger"
+                                            onclick="confirmDelete(@Model.Question.Id, @Model.Question.SurveyId)">
+                                        <i class="fas fa-trash me-2"></i>Soruyu Sil
+                                    </button>
+                                    <div>
+                                        <a href="/Admin/Surveys/Edit?id=@Model.Question.SurveyId" class="btn btn-outline-light me-2">İptal</a>
+                                        <button type="submit" class="btn btn-glass-primary">
+                                            <i class="fas fa-save me-2"></i>Kaydet
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                @section Scripts {
+                    <partial name="_ValidationScriptsPartial" />
+                    <script>
+                        let newOptionIndex = 0;
+
+                        function toggleOptions(type) {
+                            // Sayfayı yeniden yükleyerek tip değişimini göster (basit çözüm)
+                            // VEYA AJAX ile partial view yükleyebilirsiniz
+                            if (type === 'SingleChoice' || type === 'MultipleChoice') {
+                                document.getElementById('optionsContainer').style.display = 'block';
+                            } else {
+                                document.getElementById('optionsContainer').style.display = 'none';
+                            }
+                        }
+
+                        function addNewOption() {
+                            const container = document.getElementById('newOptions');
+                            const div = document.createElement('div');
+                            div.className = 'input-group mb-2';
+                            div.innerHTML = `
+                                <input type="text" name="NewOptions[${newOptionIndex}].Text"
+                                       class="form-control bg-white/10 border-white/20 text-white"
+                                       placeholder="Yeni seçenek" required>
+                                <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                            container.appendChild(div);
+                            newOptionIndex++;
+                        }
+
+                        function removeExistingOption(btn) {
+                            const optionDiv = btn.closest('.existing-option');
+                            const optionId = optionDiv.getAttribute('data-option-id');
+            
+                            // Silinecek ID'yi form'a ekle
+                            const hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = 'DeletedOptionIds';
+                            hiddenInput.value = optionId;
+                            document.querySelector('form').appendChild(hiddenInput);
+            
+                            // Görsel olarak kaldır
+                            optionDiv.remove();
+                        }
+
+                        function confirmDelete(questionId, surveyId) {
+                            if (confirm('Bu soruyu silmek istediğinize emin misiniz?')) {
+                                window.location.href = `/Admin/Surveys/Questions/Delete?id=${questionId}&surveyId=${surveyId}`;
+                            }
+                        }
+                    </script>
+                }

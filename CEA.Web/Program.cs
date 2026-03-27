@@ -1,6 +1,7 @@
 using CEA.Business.Services;
 using CEA.Core.Entities;
 using CEA.Web.Data;
+using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ApplicationDbContext = CEA.Data.ApplicationDbContext;
@@ -53,6 +54,7 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPdfReportService, PdfReportService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IComplaintAutomationService, ComplaintAutomationService>();
+builder.Services.AddScoped<ISettingsService, SettingsService>();
 
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
@@ -78,17 +80,23 @@ app.UseAuthorization();
 app.MapRazorPages();
 app.MapControllers();
 
+// Seed verileri
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
+        
         var context = services.GetRequiredService<ApplicationDbContext>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
 
         await context.Database.MigrateAsync();
+
+        // Mevcut Initialize (Roller/Admin için)
         await SeedData.Initialize(services);
+        // Yeni InitializeSettings (SMTP ayarları için)
+        await SeedData.InitializeSettings(services);
     }
     catch (Exception ex)
     {

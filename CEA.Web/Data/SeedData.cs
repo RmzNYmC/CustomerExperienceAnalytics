@@ -1,17 +1,27 @@
 ﻿using CEA.Core.Entities;
+using CEA.Core.Enum;
+using CEA.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace CEA.Web.Data
 {
     public static class SeedData
     {
+        // MEVCUT: Roller ve Admin kullanıcı için (varsa)
         public static async Task Initialize(IServiceProvider serviceProvider)
         {
-            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            using var scope = serviceProvider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
 
-            // Tüm rolleri oluştur
-            string[] roles = { "Admin", "SurveyManager", "ComplaintManager", "User" };
+            // Rolleri oluştur
+            string[] roles = { "Admin", "SurveyManager", "ComplaintManager" };
             foreach (var role in roles)
             {
                 if (!await roleManager.RoleExistsAsync(role))
@@ -20,42 +30,88 @@ namespace CEA.Web.Data
                 }
             }
 
-            // Admin kullanıcısı
-            var adminEmail = "admin@cea.com";
-            var admin = await userManager.FindByEmailAsync(adminEmail);
-
-            if (admin == null)
+            // Admin kullanıcı oluştur (eğer yoksa)
+            var adminEmail = "admin@turkon.com";
+            if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
-                admin = new ApplicationUser
+                var adminUser = new ApplicationUser
                 {
                     UserName = adminEmail,
                     Email = adminEmail,
-                    FirstName = "System",
-                    LastName = "Administrator",
                     EmailConfirmed = true,
-                    IsActive = true,
-                    CreatedDate = DateTime.Now
+                    FirstName = "System",
+                    LastName = "Admin"
                 };
 
-                var result = await userManager.CreateAsync(admin, "Admin123!");
+                var result = await userManager.CreateAsync(adminUser, "Admin123!");
                 if (result.Succeeded)
                 {
-                    // Tüm yetkili rolleri ata
-                    await userManager.AddToRoleAsync(admin, "Admin");
-                    await userManager.AddToRoleAsync(admin, "SurveyManager");
-                    await userManager.AddToRoleAsync(admin, "ComplaintManager");
+                    await userManager.AddToRoleAsync(adminUser, "Admin");
                 }
             }
-            else
+        }
+
+        // YENİ: Settings için
+        public static async Task InitializeSettings(IServiceProvider serviceProvider)
+        {
+            using var scope = serviceProvider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+            if (!await context.Settings.AnyAsync())  // AnyAsync artık çalışacak
             {
-                // Mevcut admin'e rolleri kontrol et ve ekle
-                var userRoles = await userManager.GetRolesAsync(admin);
-                if (!userRoles.Contains("Admin"))
-                    await userManager.AddToRoleAsync(admin, "Admin");
-                if (!userRoles.Contains("SurveyManager"))
-                    await userManager.AddToRoleAsync(admin, "SurveyManager");
-                if (!userRoles.Contains("ComplaintManager"))
-                    await userManager.AddToRoleAsync(admin, "ComplaintManager");
+                context.Settings.AddRange(
+                    new Setting
+                    {
+                        Key = "SMTP_Host",
+                        Value = "smtp.gmail.com",
+                        Category = "SMTP",
+                        Description = "SMTP Sunucu Adresi",
+                        CreatedAt = DateTime.Now
+                    },
+                    new Setting
+                    {
+                        Key = "SMTP_Port",
+                        Value = "587",
+                        Category = "SMTP",
+                        Description = "SMTP Port",
+                        CreatedAt = DateTime.Now
+                    },
+                    new Setting
+                    {
+                        Key = "SMTP_From",
+                        Value = "noreply@turkon.com",
+                        Category = "SMTP",
+                        Description = "Gönderici E-posta",
+                        CreatedAt = DateTime.Now
+                    },
+                    new Setting
+                    {
+                        Key = "SMTP_FromName",
+                        Value = "Turkon Lojistik",
+                        Category = "SMTP",
+                        Description = "Gönderici Adı",
+                        CreatedAt = DateTime.Now
+                    },
+                    new Setting
+                    {
+                        Key = "SMTP_Username",
+                        Value = "",
+                        Category = "SMTP",
+                        Description = "SMTP Kullanıcı adı",
+                        CreatedAt = DateTime.Now
+                    },
+                    new Setting
+                    {
+                        Key = "SMTP_Password",
+                        Value = "",
+                        Category = "SMTP",
+                        Description = "SMTP Şifre",
+                        IsEncrypted = true,
+                        CreatedAt = DateTime.Now
+                    }
+                );
+
+                await context.SaveChangesAsync();
             }
         }
     }

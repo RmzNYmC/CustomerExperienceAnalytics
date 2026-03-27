@@ -3,6 +3,7 @@ using CEA.Core.Enum;
 using CEA.Core.Enums;
 using CEA.Data;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,6 +40,41 @@ namespace CEA.Web.Pages.Admin.Surveys
                     ResponseCount = s.Responses.Count(r => !r.IsDeleted)
                 })
                 .ToListAsync();
+        }
+        public async Task<IActionResult> OnPostDeleteAsync(int id)
+        {
+            var survey = await _context.Surveys
+                .Include(s => s.Responses)
+                .FirstOrDefaultAsync(s => s.Id == id && !s.IsDeleted);
+
+            if (survey == null)
+            {
+                TempData["ErrorMessage"] = "Anket bulunamadı.";
+                return RedirectToPage();
+            }
+
+            try
+            {
+                // Soft delete
+                survey.IsDeleted = true;
+                survey.DeletedAt = DateTime.Now;
+
+                // İlişkili yanıtları da soft delete yap (isteğe bağlı)
+                foreach (var response in survey.Responses.Where(r => !r.IsDeleted))
+                {
+                    response.IsDeleted = true;
+                    response.DeletedAt = DateTime.Now;
+                }
+
+                await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"'{survey.Title}' anket başarıyla silindi.";
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = "Anket silinirken bir hata oluştu: " + ex.Message;
+            }
+
+            return RedirectToPage();
         }
     }
 

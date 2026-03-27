@@ -52,6 +52,14 @@ namespace CEA.Core.ViewModels
         public int OpenComplaints { get; set; }
         public int CriticalComplaints { get; set; }
         public List<TrendDataPoint> MonthlyTrend { get; set; } = new();
+        public decimal PositivePercentage { get; set; }    // Olumlu (😊)
+        public decimal NeutralPercentage { get; set; }     // Orta (😐)
+        public decimal NegativePercentage { get; set; }    // Olumsuz (😡)
+        //Sayısal dağılımlar(Toplam Geri Bildirimler kartı için)
+    public int PositiveCount { get; set; }      // Olumlu sayısı
+        public int NeutralCount { get; set; }       // Orta sayısı  
+        public int NegativeCount { get; set; }      // Olumsuz sayısı
+        public int TotalFeedbackCount { get; set; } // Toplam geri bildirim sayısı
     }
 
     public class TrendDataPoint

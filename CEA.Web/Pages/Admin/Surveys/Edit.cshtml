@@ -1,0 +1,246 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Surveys.EditModel
+@{
+    ViewData["Title"] = "Anket Düzenle";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4><i class="fas fa-edit me-2"></i>Anket Düzenle</h4>
+            <a href="/Admin/Surveys/Index" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Geri Dön
+            </a>
+        </div>
+
+        <div class="glass-card p-4">
+            <!-- BAŞARI MESAJI -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success glass-card border-success mb-3">
+                    <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMessage"]
+                </div>
+            }
+
+            <form method="post">
+                <!-- HIDDEN FIELDS - Tüm korunması gereken alanlar -->
+                <input type="hidden" asp-for="Survey.Id" />
+                <input type="hidden" asp-for="Survey.PublicToken" />
+                <input type="hidden" asp-for="Survey.CreatedAt" />
+                <input type="hidden" asp-for="Survey.CreatedByUserId" />
+                <input type="hidden" asp-for="Survey.IsDeleted" value="false" />
+                <input type="hidden" asp-for="Survey.DeletedAt" />
+
+                <!-- VALIDATION SUMMARY -->
+                <div asp-validation-summary="All" class="alert alert-danger"
+                     style="display: @(ViewData.ModelState.IsValid && TempData["SuccessMessage"] == null ? "none" : "block")">
+                </div>
+
+                <div class="row g-3">
+                    <!-- Anket Başlığı -->
+                    <div class="col-12">
+                        <label class="form-label text-white">Anket Başlığı <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control bg-white/10 border-white/20 text-black"
+                               asp-for="Survey.Title" required>
+                        </div>
+
+                        <!-- Açıklama -->
+                        <div class="col-12">
+                            <label class="form-label text-white">Açıklama</label>
+                            <textarea class="form-control bg-white/10 border-white/20 text-black"
+                                      asp-for="Survey.Description" rows="2"></textarea>
+                        </div>
+
+                        <!-- Tarihler -->
+                        <div class="col-md-6">
+                            <label class="form-label text-white">Başlangıç Tarihi</label>
+                            <input type="datetime-local" class="form-control bg-white/10 border-white/20 text-black"
+                                   asp-for="Survey.StartDate">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-white">Bitiş Tarihi</label>
+                                <input type="datetime-local" class="form-control bg-white/10 border-white/20 text-black"
+                                       asp-for="Survey.EndDate">
+                                </div>
+
+                                <!-- Yıl ve Ay -->
+                                <div class="col-md-6">
+                                    <label class="form-label text-white">Analiz Yılı <span class="text-danger">*</span></label>
+                                    <input type="number" class="form-control bg-white/10 border-white/20 text-black"
+                                           asp-for="Survey.AnalysisYear" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-white">Analiz Ayı</label>
+                                        <select class="form-select bg-white/10 border-white/20 text-black" asp-for="Survey.AnalysisMonth">
+                                            <option value="">Yıllık</option>
+                                            @for (int i = 1; i <= 12; i++)
+                                            {
+                                                <option value="@i">@i.ToString("00")</option>
+                                            }
+                                        </select>
+                                    </div>
+
+                                    <!-- Durum -->
+                                    <div class="col-md-6">
+                                        <label class="form-label text-white">Durum</label>
+                                        <select class="form-select bg-white/10 border-white/20 text-black"
+                                                asp-for="Survey.Status" asp-items="Model.StatusList">
+                                        </select>
+                                    </div>
+
+                                    <!-- Mesajlar -->
+                                    <div class="col-12">
+                                        <label class="form-label text-white">Karşılama Mesajı</label>
+                                        <textarea class="form-control bg-white/10 border-white/20 text-black"
+                                                  asp-for="Survey.WelcomeMessage" rows="2"></textarea>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label text-white">Teşekkür Mesajı</label>
+                                        <textarea class="form-control bg-white/10 border-white/20 text-black"
+                                                  asp-for="Survey.ThankYouMessage" rows="2"></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Butonlar -->
+                                <div class="d-flex justify-content-between mt-4 pt-3 border-top border-white/10">
+                                    <button type="button" class="btn btn-outline-danger" onclick="confirmDelete()">
+                                        <i class="fas fa-trash me-2"></i>Sil
+                                    </button>
+                                    <div>
+                                        <a href="/Admin/Surveys/Index" class="btn btn-outline-light me-2">İptal</a>
+                                        <button type="submit" class="btn btn-glass-primary">
+                                            <i class="fas fa-save me-2"></i>Kaydet
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- SORULAR BÖLÜMÜ -->
+                        <div class="glass-card p-4 mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="text-white mb-0"><i class="fas fa-list-ol me-2"></i>Sorular</h5>
+                                <a href="/Admin/Surveys/Questions/Create?surveyId=@Model.Survey.Id" class="btn btn-sm btn-glass-success">
+                                    <i class="fas fa-plus me-1"></i>Yeni Soru
+                                </a>
+                            </div>
+
+                            @if (Model.Survey.Questions != null && Model.Survey.Questions.Any())
+                            {
+                                @foreach (var question in Model.Survey.Questions.OrderBy(q => q.DisplayOrder))
+                                {
+                                    <div class="p-3 mb-3 rounded border border-white/10" style="background: rgba(255,255,255,0.05);">
+                                        <!-- Soru Başlığı -->
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <div>
+                                                <span class="badge bg-white/10 me-2">#@question.DisplayOrder</span>
+                                                <span class="badge badge-glass-info">@question.QuestionType</span>
+                                                @if (question.IsRequired)
+                                                {
+                                                    <span class="badge badge-glass-danger ms-1">Zorunlu</span>
+                                                }
+                                                <div class="text-white mt-2 fw-semibold">@question.Text</div>
+                                            </div>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="/Admin/Surveys/Questions/Edit?id=@question.Id" class="btn btn-outline-light" title="Düzenle">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <a href="/Admin/Surveys/Questions/Delete?id=@question.Id&surveyId=@Model.Survey.Id"
+                                                       class="btn btn-outline-danger"
+                                                       onclick="return confirm('Bu soruyu silmek istediğinize emin misiniz?')"
+                                                       title="Sil">
+                                                    <i class="fas fa-trash"></i>
+                                                </a>
+                                            </div>
+                                        </div>
+
+                                        <!-- Seçenekler / Detaylar -->
+                                        <div class="ps-4 mt-3 border-start border-white/20">
+                                            @if (question.QuestionType == QuestionType.SingleChoice || question.QuestionType == QuestionType.MultipleChoice)
+                                            {
+                                                @if (question.Options != null && question.Options.Any(o => !o.IsDeleted))
+                                                {
+                                                    <div class="small text-white/70 mb-2">
+                                                        <i class="fas fa-list-ul me-1"></i>Seçenekler:
+                                                    </div>
+                                                    <div class="d-flex flex-wrap gap-2">
+                                                        @foreach (var option in question.Options.Where(o => !o.IsDeleted).OrderBy(o => o.DisplayOrder))
+                                                        {
+                                                            <span class="badge bg-white/10 text-white border border-white/20 px-3 py-2">
+                                                                <i class="far fa-circle me-1 text-white/50"></i>@option.Text
+                                                            </span>
+                                                        }
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge badge-glass-warning">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>Seçenek eklenmemiş
+                                                    </span>
+                                                }
+                                            }
+                                            else if (question.QuestionType == QuestionType.RatingScale)
+                                            {
+                                                <div class="small text-white/70">
+                                                    <i class="fas fa-star me-1 text-yellow-400"></i>
+                                                    Rating: @question.MinRating ile @question.MaxRating arası
+                                                </div>
+                                            }
+                                            else if (question.QuestionType == QuestionType.NpsScore)
+                                            {
+                                                <div class="small text-white/70">
+                                                    <i class="fas fa-tachometer-alt me-1 text-red-400"></i>
+                                                    NPS Skoru: 0 - 10
+                                                </div>
+                                            }
+                                            else if (question.QuestionType == QuestionType.TextOpen)
+                                            {
+                                                <div class="small text-white/70">
+                                                    <i class="fas fa-align-left me-1 text-blue-400"></i>
+                                                    Açık uçlu metin yanıtı bekleniyor
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center text-white/50 py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2"></i>
+                                    <p class="mb-0">Henüz soru eklenmemiş.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Silme Modal -->
+                <div class="modal fade" id="deleteModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content glass-card">
+                            <div class="modal-header border-white/10">
+                                <h5 class="modal-title text-white">Anket Sil</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body text-white">
+                                <p>Bu anket silinecek. Emin misiniz?</p>
+                            </div>
+                            <div class="modal-footer border-white/10">
+                                <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">İptal</button>
+                                <a href="/Admin/Surveys/Index?handler=Delete&id=@Model.Survey.Id" class="btn btn-danger">Sil</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @section Scripts {
+                    <partial name="_ValidationScriptsPartial" />
+                    <script>
+                        function confirmDelete() {
+                            new bootstrap.Modal(document.getElementById('deleteModal')).show();
+                        }
+                    </script>
+                }
