@@ -121,19 +121,18 @@ namespace CEA.Business.Services
                     case QuestionType.SingleChoice:
                     case QuestionType.MultipleChoice:
                         var optionCounts = questionAnswers
-                            .SelectMany(a => (a.SelectedOptionIds ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
-                            .GroupBy(x => x)
-                            .Select(g => new { OptionId = g.Key, Count = g.Count() })
-                            .ToList();
+        .Where(a => !string.IsNullOrEmpty(a.TextAnswer))
+        .GroupBy(a => a.TextAnswer)
+        .Select(g => new { OptionText = g.Key, Count = g.Count() })
+        .ToList();
 
-                        foreach (var opt in question.Options)
+                        foreach (var opt in optionCounts)
                         {
-                            var count = optionCounts.FirstOrDefault(x => x.OptionId == opt.Id.ToString())?.Count ?? 0;
                             qa.Distribution.Add(new AnswerDistribution
                             {
-                                Label = opt.Text,
-                                Count = count,
-                                Percentage = questionAnswers.Any() ? (decimal)count / questionAnswers.Count * 100 : 0
+                                Label = opt.OptionText, // Seçilen metin direkt burada
+                                Count = opt.Count,
+                                Percentage = questionAnswers.Any() ? (decimal)opt.Count / questionAnswers.Count * 100 : 0
                             });
                         }
                         break;

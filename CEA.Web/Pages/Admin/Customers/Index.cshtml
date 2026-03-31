@@ -1,0 +1,117 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Customers.IndexModel
+@{
+    ViewData["Title"] = "Müşteri Yönetimi";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4><i class="fas fa-users me-2"></i>Müşteri Yönetimi</h4>
+        <div>
+            <a href="/Admin/Customers/Import" class="btn btn-outline-success me-2">
+                <i class="fas fa-file-excel me-2"></i>Excel Import
+            </a>
+            <a href="/Admin/Customers/Create" class="btn btn-glass-primary">
+                <i class="fas fa-plus me-2"></i>Yeni Müşteri
+            </a>
+        </div>
+    </div>
+
+    <div class="glass-card p-3 mb-4">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-white">Ara</label>
+                <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                       asp-for="SearchTerm" placeholder="İsim, email veya şirket...">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-white">Segment</label>
+                    <select class="form-select bg-white/10 border-white/20 text-white" asp-for="SegmentFilter">
+                        <option value="">Tümü</option>
+                        <option value="VIP">VIP</option>
+                        <option value="Enterprise">Kurumsal</option>
+                        <option value="Standard">Standart</option>
+                        <option value="B2B">B2B</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-glass-primary w-100">
+                        <i class="fas fa-search me-2"></i>Filtrele
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a href="/Admin/Customers" class="btn btn-outline-light w-100">Temizle</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="glass-card">
+            <div class="table-responsive">
+                <table class="table table-hover table-dark mb-0">
+                    <thead>
+                        <tr>
+                            <th>İsim</th>
+                            <th>E-posta</th>
+                            <th>Şirket</th>
+                            <th>Segment</th>
+                            <th>İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var customer in Model.Customers)
+                        {
+                            <tr>
+                                <td>@customer.Name</td>
+                                <td>@customer.Email</td>
+                                <td>@(customer.CompanyName ?? "-")</td>
+                                <td>@(customer.Segment ?? "Standart")</td>
+                                <td>
+                                    <a href="/Admin/Customers/Edit?id=@customer.Id" class="btn btn-sm btn-outline-light me-1">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@customer.Id"
+                                          class="d-inline" onsubmit="return confirm('Silmek istediğinize emin misiniz?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div class="card-footer bg-transparent border-top border-white/10">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                <a class="page-link bg-white/10 border-white/20 text-white"
+                                       href="/Admin/Customers?PageIndex=@(Model.PageIndex - 1)&SearchTerm=@Model.SearchTerm&SegmentFilter=@Model.SegmentFilter">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            @for (int i = 1; i <= Model.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                                    <a class="page-link @(i == Model.PageIndex ? "bg-primary border-primary" : "bg-white/10 border-white/20 text-white")"
+                                           href="/Admin/Customers?PageIndex=@i&SearchTerm=@Model.SearchTerm&SegmentFilter=@Model.SegmentFilter">
+                                        @i
+                                    </a>
+                                </li>
+                            }
+                            <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                <a class="page-link bg-white/10 border-white/20 text-white"
+                                       href="/Admin/Customers?PageIndex=@(Model.PageIndex + 1)&SearchTerm=@Model.SearchTerm&SegmentFilter=@Model.SegmentFilter">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>

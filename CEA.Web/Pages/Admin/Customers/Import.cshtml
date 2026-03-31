@@ -1,0 +1,51 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Customers.ImportModel
+@{
+    ViewData["Title"] = "Excel Import";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h4 class="mb-4"><i class="fas fa-file-excel me-2"></i>Excel Import</h4>
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success">@Model.SuccessMessage</div>
+        }
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+
+        <div class="glass-card p-4 mb-4">
+            <form method="post" enctype="multipart/form-data">
+                <input type="file" class="form-control bg-white/10 border-white/20 text-white mb-3"
+                       asp-for="ExcelFile" accept=".xlsx" required>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-glass-primary">Yükle</button>
+                        <a href="/Admin/Customers/Import?handler=DownloadTemplate" class="btn btn-outline-success">Şablon İndir</a>
+                    </div>
+                </form>
+            </div>
+
+            @if (Model.Results.Any())
+            {
+                <div class="glass-card p-4">
+                    <table class="table table-sm table-dark">
+                        <thead><tr><th>Satır</th><th>E-posta</th><th>Durum</th></tr></thead>
+                        <tbody>
+                            @foreach (var r in Model.Results)
+                            {
+                                <tr class="@(r.Success ? "table-success" : "table-danger")">
+                                    <td>@r.Row</td>
+                                    <td>@r.Email</td>
+                                    <td>@r.Message</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>

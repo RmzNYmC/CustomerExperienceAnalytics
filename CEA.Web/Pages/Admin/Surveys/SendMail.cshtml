@@ -1,230 +1,354 @@
 ﻿@page
 @model CEA.Web.Pages.Admin.Surveys.SendMailModel
 @{
-    ViewData["Title"] = "Anket Mail Gönderimi";
+    ViewData["Title"] = "Mail Gönder";
     Layout = "_Layout";
 }
 
-<div class="row justify-content-center">
-    <div class="col-lg-10">
-        <!-- Başlık -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <div>
-                <h4 class="mb-1">
-                    <i class="fas fa-envelope text-warning me-2"></i>
-                    Anket Mail Gönderimi
-                </h4>
-                <p class="text-white/60 mb-0">@Model.SurveyTitle</p>
-            </div>
-            <a href="/Admin/Surveys/Index" class="btn btn-outline-light">
-                <i class="fas fa-arrow-left me-2"></i>Geri Dön
-            </a>
+<style>
+    .customer-row:hover { background-color: rgba(255,255,255,0.05) !important; cursor: pointer; }
+    .customer-row.selected { background-color: rgba(37, 99, 235, 0.2) !important; }
+    .customer-row.responded { opacity: 0.6; }
+    .sticky-header { position: sticky; top: 0; z-index: 10; background: rgba(15, 23, 42, 0.95); }
+    .selection-summary { position: fixed; bottom: 20px; right: 20px; z-index: 100; }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4><i class="fas fa-paper-plane me-2"></i>Mail Gönder</h4>
+            <p class="text-white/60 mb-0">@Model.SurveyTitle</p>
         </div>
+        <a href="/Admin/Surveys/Edit?id=@Model.SurveyId" class="btn btn-outline-light btn-sm">
+            <i class="fas fa-arrow-left me-2"></i>Geri Dön
+        </a>
+    </div>
 
-        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-        {
-            <div class="alert alert-success glass-card border-success">
-                <i class="fas fa-check-circle me-2"></i>@Model.SuccessMessage
-            </div>
-        }
+    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            <i class="fas fa-check-circle me-2"></i>@Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
-        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-        {
-            <div class="alert alert-danger glass-card border-danger">
-                <i class="fas fa-exclamation-circle me-2"></i>@Model.ErrorMessage
-            </div>
-        }
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            <i class="fas fa-exclamation-circle me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
 
-        <form method="post" class="needs-validation" novalidate>
-            <input type="hidden" asp-for="SurveyId" />
-
-            <div class="row g-4">
-                <!-- Sol Kolon: Müşteri Listesi -->
-                <div class="col-lg-5">
-                    <div class="glass-card p-4 h-100">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="mb-0">
-                                <i class="fas fa-users me-2"></i>Müşteri Listesi
-                            </h5>
-                            <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-outline-light" onclick="selectAll(true)">
-                                    Tümünü Seç
-                                </button>
-                                <button type="button" class="btn btn-outline-light" onclick="selectAll(false)">
-                                    Temizle
+    <form method="post" id="sendMailForm">
+        <input type="hidden" asp-for="SurveyId" />
+        
+        <div class="row">
+            <!-- Sol Panel: Müşteri Seçimi -->
+            <div class="col-lg-8">
+                <div class="glass-card mb-4">
+                    <div class="card-header bg-transparent border-bottom border-white/10 py-3">
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-4">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white/10 border-white/20">
+                                        <i class="fas fa-search text-white/50"></i>
+                                    </span>
+                                    <input type="text" class="form-control bg-white/10 border-white/20 text-white" 
+                                           asp-for="SearchTerm" placeholder="İsim, email ara..." 
+                                           onkeyup="debounceFilter()" id="searchInput">
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-select bg-white/10 border-white/20 text-white" 
+                                        asp-for="SegmentFilter" onchange="this.form.submit()">
+                                    <option value="">Tüm Segmentler</option>
+                                    <option value="VIP">VIP</option>
+                                    <option value="Enterprise">Kurumsal</option>
+                                    <option value="B2B">B2B</option>
+                                    <option value="Standard">Standart</option>
+                                </select>
+                            </div>
+                            <div class="col-md-5 text-end">
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                    <label class="form-check-label text-white" for="selectAll">
+                                        Tümünü Seç (<span id="totalCount">@Model.Customers.Count</span>)
+                                    </label>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-info ms-2" onclick="toggleFilterResponded()">
+                                    <i class="fas fa-filter"></i> Yanıtlayanları Gizle
                                 </button>
                             </div>
                         </div>
-
-                        <div class="mb-3">
-                            <div class="input-group">
-                                <span class="input-group-text bg-white/10 border-white/20 text-white">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <input type="text" class="form-control bg-white/10 border-white/20 text-white"
-                                       id="customerSearch" placeholder="Müşteri ara..." onkeyup="filterCustomers()">
-                            </div>
-                        </div>
-
-                        <div class="customer-list" style="max-height: 400px; overflow-y: auto;">
-                            @if (Model.Customers.Any())
-                            {
+                    </div>
+                    
+                    <div class="card-body p-0" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-dark table-hover mb-0" id="customersTable">
+                            <thead class="sticky-header">
+                                <tr>
+                                    <th width="40">
+                                        <input type="checkbox" class="form-check-input" id="selectAllHeader" onchange="toggleSelectAll()">
+                                    </th>
+                                    <th>Müşteri</th>
+                                    <th>Şirket</th>
+                                    <th>Segment</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
                                 @foreach (var customer in Model.Customers)
                                 {
-                                    <div class="customer-item p-3 mb-2 rounded border border-white/10 hover:bg-white/5 transition cursor-pointer"
-                                         onclick="toggleCustomer(@customer.Id)">
-                                        <div class="d-flex align-items-center">
-                                            <div class="form-check">
-                                                <input class="form-check-input customer-checkbox"
-                                                       type="checkbox"
-                                                       name="SelectedCustomerIds"
-                                                       value="@customer.Id"
-                                                       id="cust_@customer.Id"
-                                                @(customer.HasResponded ? "disabled" : "")>
+                                    <tr class="customer-row @(customer.HasResponded ? "responded" : "")" 
+                                        data-id="@customer.Id" 
+                                        data-name="@customer.Name.ToLower()"
+                                        data-email="@customer.Email.ToLower()"
+                                        data-company="@(customer.CompanyName?.ToLower() ?? "")"
+                                        data-responded="@customer.HasResponded.ToString().ToLower()">
+                                        <td onclick="event.stopPropagation()">
+                                            <input type="checkbox" class="form-check-input customer-checkbox" 
+                                                   name="SelectedCustomerIds" value="@customer.Id" 
+                                                   @(customer.HasResponded ? "disabled" : "")
+                                                   onchange="updateSelection()">
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="bg-blue-500/20 rounded-full w-8 h-8 flex items-center justify-center me-2">
+                                                    <span class="text-sm font-bold">@customer.Name.Substring(0, 1)</span>
+                                                </div>
+                                                <div>
+                                                    <div class="font-semibold">@customer.Name</div>
+                                                    <small class="text-white/50">@customer.Email</small>
+                                                </div>
                                             </div>
-                                            <div class="ms-3 flex-grow-1">
-                                                <div class="fw-semibold text-white">@(customer.Name ?? "İsimsiz")</div>
-                                                <div class="small text-white/60">@customer.Email</div>
-                                                @if (customer.HasResponded)
-                                                {
-                                                    <span class="badge badge-glass-success mt-1">
-                                                        <i class="fas fa-check me-1"></i>Yanıt Verildi
-                                                    </span>
-                                                }
-                                            </div>
-                                        </div>
-                                    </div>
+                                        </td>
+                                        <td>@(customer.CompanyName ?? "-")</td>
+                                        <td>
+                                            <span class="badge bg-@(customer.Segment switch {
+                                                "VIP" => "warning",
+                                                "Enterprise" => "primary", 
+                                                "B2B" => "success",
+                                                _ => "secondary"
+                                            })">@(customer.Segment ?? "Standart")</span>
+                                        </td>
+                                        <td>
+                                            @if (customer.HasResponded)
+                                            {
+                                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>Yanıtlandı</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Bekliyor</span>
+                                            }
+                                        </td>
+                                    </tr>
                                 }
-                            }
-                            else
-                            {
-                                <div class="text-center text-white/50 py-5">
-                                    <i class="fas fa-inbox fa-3x mb-3"></i>
-                                    <p>Müşteri bulunamadı.</p>
-                                </div>
-                            }
+                            </tbody>
+                        </table>
+                        
+                        @if (!Model.Customers.Any())
+                        {
+                            <div class="text-center py-5">
+                                <i class="fas fa-inbox fa-3x text-white/20 mb-3"></i>
+                                <p class="text-white/50">Müşteri bulunamadı.</p>
+                                <a href="/Admin/Customers/Create" class="btn btn-glass-primary btn-sm">
+                                    <i class="fas fa-plus me-2"></i>Müşteri Ekle
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sağ Panel: Mail İçeriği -->
+            <div class="col-lg-4">
+                <div class="glass-card sticky-top" style="top: 20px;">
+                    <div class="card-header bg-transparent border-bottom border-white/10">
+                        <h6 class="mb-0"><i class="fas fa-envelope me-2"></i>Mail İçeriği</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label text-white">Konu <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control bg-white/10 border-white/20 text-white" 
+                                   asp-for="MailSubject" required placeholder="Mail konusu...">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-white">Kişisel Mesaj (Opsiyonel)</label>
+                            <textarea class="form-control bg-white/10 border-white/20 text-white" 
+                                      asp-for="PersonalMessage" rows="4" 
+                                      placeholder="Müşteriye özel not ekleyebilirsiniz..."></textarea>
+                            <small class="text-white/50">Boş bırakılırsa varsayılan mesaj gönderilir.</small>
                         </div>
 
-                        <div class="mt-3 p-3 bg-white/5 rounded">
-                            <div class="d-flex justify-content-between text-white">
-                                <span>Seçilen:</span>
-                                <span class="fw-bold" id="selectedCount">0</span>
+                        <div class="alert alert-info bg-white/10 border-white/20">
+                            <small>
+                                <i class="fas fa-info-circle me-1"></i>
+                                <strong>Mail şablonu:</strong> Turkon Lojistik kurumsal şablonu kullanılacaktır.
+                            </small>
+                        </div>
+
+                        <button type="submit" class="btn btn-glass-success w-100 mt-3" id="sendBtn" disabled>
+                            <i class="fas fa-paper-plane me-2"></i>
+                            Seçili Müşterilere Gönder (<span id="selectedCount">0</span>)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hızlı İstatistikler -->
+                <div class="glass-card mt-3">
+                    <div class="card-body">
+                        <h6 class="text-white/70 mb-3">Hızlı İstatistikler</h6>
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="text-2xl font-bold text-blue-400">@Model.Customers.Count</div>
+                                <small class="text-white/50">Toplam Müşteri</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-2xl font-bold text-green-400">
+                                    @Model.Customers.Count(c => c.HasResponded)
+                                </div>
+                                <small class="text-white/50">Yanıtlayan</small>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <!-- Sağ Kolon: Mail İçeriği -->
-                <div class="col-lg-7">
-                    <div class="glass-card p-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-edit me-2"></i>Mail İçeriği
-                        </h5>
-
-                        <div class="mb-3">
-                            <label class="form-label text-white">Mail Konusu</label>
-                            <input type="text" class="form-control bg-white/10 border-white/20 text-white"
-                                   asp-for="MailSubject" required
-                                   placeholder="Anket davetiyesi...">
-                                <span asp-validation-for="MailSubject" class="text-danger"></span>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label text-white">Kişisel Mesaj (Opsiyonel)</label>
-                                <textarea class="form-control bg-white/10 border-white/20 text-white"
-                                          asp-for="PersonalMessage" rows="4"
-                                          placeholder="Değerli müşterimiz, memnuniyet ankemize katılarak bize yardımcı olabilirsiniz..."></textarea>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label text-white">Önizleme</label>
-                                <div class="p-3 bg-white/5 rounded border border-white/10">
-                                    <div class="small text-white/60 mb-2">Müşteriye gidecek mail:</div>
-                                    <div class="p-3 bg-white rounded text-dark">
-                                        <div class="fw-bold mb-2" id="previewSubject">Konu: @(Model.MailSubject ?? "Anket Davetiyesi")</div>
-                                        <hr class="my-2">
-                                        <p>Sayın <span class="fw-bold">[Müşteri Adı]</span>,</p>
-                                        <p id="previewMessage">
-                                            @(string.IsNullOrEmpty(Model.PersonalMessage)
-                                                ? "Turkon Lojistik olarak sizden aldığımız hizmetlerimiz hakkında geri bildirim rica ediyoruz."
-                                                : Model.PersonalMessage)
-                                        </p>
-                                        <p>Anketimize katılmak için aşağıdaki bağlantıya tıklayabilirsiniz:</p>
-                                        <a href="#" class="btn btn-primary btn-sm">Ankete Katıl</a>
-                                        <hr class="my-2">
-                                        <small class="text-muted">Turkon Lojistik CEA Sistemi</small>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center mt-4">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" asp-for="SendReminder">
-                                        <label class="form-check-label text-white" asp-for="SendReminder">
-                                            Daha önce yanıt verenlere de gönder
-                                        </label>
-                                    </div>
-                                    <button type="submit" class="btn btn-glass-primary btn-lg" id="sendBtn" disabled>
-                                        <i class="fas fa-paper-plane me-2"></i>
-                                        Mail Gönder
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </form>
             </div>
         </div>
+    </form>
+</div>
 
-        @section Scripts {
-            <partial name="_ValidationScriptsPartial" />
-            <script>
-                // Önizleme güncelleme
-                document.getElementById('MailSubject').addEventListener('input', function() {
-                    document.getElementById('previewSubject').textContent = 'Konu: ' + (this.value || 'Anket Davetiyesi');
-                });
+<!-- Floating Selection Summary -->
+<div class="selection-summary" id="selectionSummary" style="display: none;">
+    <div class="glass-card p-3 border border-blue-500/50 shadow-lg">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary fs-6" id="floatingCount">0</span>
+            <span class="text-white">müşteri seçildi</span>
+            <button type="button" class="btn btn-sm btn-outline-light ms-2" onclick="clearSelection()">
+                <i class="fas fa-times"></i> Temizle
+            </button>
+        </div>
+    </div>
+</div>
 
-                document.getElementById('PersonalMessage').addEventListener('input', function() {
-                    document.getElementById('previewMessage').textContent = this.value || 'Turkon Lojistik olarak sizden aldığımız hizmetlerimiz hakkında geri bildirim rica ediyoruz.';
-                });
-
-                // Müşteri seçimi
-                function toggleCustomer(id) {
-                    const checkbox = document.getElementById('cust_' + id);
+@section Scripts {
+    <script>
+        let hideResponded = false;
+        
+        function updateSelection() {
+            const checkboxes = document.querySelectorAll('.customer-checkbox:checked');
+            const count = checkboxes.length;
+            
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('floatingCount').textContent = count;
+            document.getElementById('sendBtn').disabled = count === 0;
+            document.getElementById('selectionSummary').style.display = count > 0 ? 'block' : 'none';
+            
+            document.querySelectorAll('.customer-row').forEach(row => {
+                const checkbox = row.querySelector('.customer-checkbox');
+                if (checkbox.checked) {
+                    row.classList.add('selected');
+                } else {
+                    row.classList.remove('selected');
+                }
+            });
+            
+            const totalEnabled = document.querySelectorAll('.customer-checkbox:not([disabled])').length;
+            const allChecked = count === totalEnabled && totalEnabled > 0;
+            document.getElementById('selectAll').checked = allChecked;
+            document.getElementById('selectAllHeader').checked = allChecked;
+        }
+        
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll').checked;
+            document.getElementById('selectAllHeader').checked = selectAll;
+            
+            document.querySelectorAll('.customer-checkbox:not([disabled])').forEach(checkbox => {
+                checkbox.checked = selectAll;
+            });
+            
+            updateSelection();
+        }
+        
+        function clearSelection() {
+            document.querySelectorAll('.customer-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+            document.getElementById('selectAll').checked = false;
+            document.getElementById('selectAllHeader').checked = false;
+            updateSelection();
+        }
+        
+        function toggleFilterResponded() {
+            hideResponded = !hideResponded;
+            const btn = event.target.closest('button');
+            
+            document.querySelectorAll('.customer-row').forEach(row => {
+                const isResponded = row.getAttribute('data-responded') === 'true';
+                if (hideResponded && isResponded) {
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = '';
+                }
+            });
+            
+            if (hideResponded) {
+                btn.classList.remove('btn-outline-info');
+                btn.classList.add('btn-info');
+                btn.innerHTML = '<i class="fas fa-filter"></i> Tümünü Göster';
+            } else {
+                btn.classList.add('btn-outline-info');
+                btn.classList.remove('btn-info');
+                btn.innerHTML = '<i class="fas fa-filter"></i> Yanıtlayanları Gizle';
+            }
+            
+            updateTotalCount();
+        }
+        
+        function debounceFilter() {
+            clearTimeout(window.filterTimeout);
+            window.filterTimeout = setTimeout(filterCustomers, 300);
+        }
+        
+        function filterCustomers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            document.querySelectorAll('.customer-row').forEach(row => {
+                if (hideResponded && row.getAttribute('data-responded') === 'true') {
+                    return;
+                }
+                
+                const name = row.getAttribute('data-name');
+                const email = row.getAttribute('data-email');
+                const company = row.getAttribute('data-company');
+                
+                const match = name.includes(searchTerm) || 
+                             email.includes(searchTerm) || 
+                             company.includes(searchTerm);
+                
+                row.style.display = match ? '' : 'none';
+            });
+            
+            updateTotalCount();
+        }
+        
+        function updateTotalCount() {
+            const visibleRows = document.querySelectorAll('.customer-row:not([style*="display: none"])').length;
+            document.getElementById('totalCount').textContent = visibleRows;
+        }
+        
+        document.querySelectorAll('.customer-row').forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'A') {
+                    const checkbox = this.querySelector('.customer-checkbox');
                     if (!checkbox.disabled) {
                         checkbox.checked = !checkbox.checked;
-                        updateSelectedCount();
+                        updateSelection();
                     }
                 }
-
-                function selectAll(select) {
-                    document.querySelectorAll('.customer-checkbox:not(:disabled)').forEach(cb => {
-                        cb.checked = select;
-                    });
-                    updateSelectedCount();
-                }
-
-                function updateSelectedCount() {
-                    const count = document.querySelectorAll('.customer-checkbox:checked').length;
-                    document.getElementById('selectedCount').textContent = count;
-                    document.getElementById('sendBtn').disabled = count === 0;
-                }
-
-                // Müşteri filtreleme
-                function filterCustomers() {
-                    const search = document.getElementById('customerSearch').value.toLowerCase();
-                    document.querySelectorAll('.customer-item').forEach(item => {
-                        const text = item.textContent.toLowerCase();
-                        item.style.display = text.includes(search) ? '' : 'none';
-                    });
-                }
-
-                // Checkbox değişimlerini dinle
-                document.querySelectorAll('.customer-checkbox').forEach(cb => {
-                    cb.addEventListener('change', updateSelectedCount);
-                });
-
-                // İlk yüklemede sayıyı güncelle
-                updateSelectedCount();
-            </script>
-        }
+            });
+        });
+        
+        updateSelection();
+    </script>
+}

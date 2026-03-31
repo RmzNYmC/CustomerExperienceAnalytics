@@ -138,8 +138,6 @@
                         let newOptionIndex = 0;
 
                         function toggleOptions(type) {
-                            // Sayfayı yeniden yükleyerek tip değişimini göster (basit çözüm)
-                            // VEYA AJAX ile partial view yükleyebilirsiniz
                             if (type === 'SingleChoice' || type === 'MultipleChoice') {
                                 document.getElementById('optionsContainer').style.display = 'block';
                             } else {
@@ -147,12 +145,69 @@
                             }
                         }
 
+                        // ✅ YENİ FONKSİYON - Debug'lı versiyon
+                        function removeExistingOption(btn) {
+                            console.log('Fonksiyon çalıştı! Buton:', btn); // Debug 1
+            
+                            const optionDiv = btn.closest('.existing-option');
+                            console.log('Bulunan div:', optionDiv); // Debug 2
+            
+                            if (!optionDiv) {
+                                console.error('existing-option classlı div bulunamadı!');
+                                return;
+                            }
+            
+                            const optionId = optionDiv.getAttribute('data-option-id');
+                            console.log('Seçenek ID:', optionId); // Debug 3
+            
+                            if (!optionId) {
+                                console.error('data-option-id attribute bulunamadı!');
+                                return;
+                            }
+
+                            // Form'u bul (butondan yukarı çıkarak)
+                            const form = btn.closest('form');
+                            console.log('Bulunan form:', form); // Debug 4
+            
+                            if (!form) {
+                                console.error('Form bulunamadı!');
+                                return;
+                            }
+
+                            // Hidden input oluştur
+                            const hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = 'DeletedOptionIds';
+                            hiddenInput.value = optionId;
+            
+                            // Form'a ekle
+                            form.appendChild(hiddenInput);
+            
+                            // Doğrulama - form içindeki tüm DeletedOptionIds inputlarını say
+                            const allDeletedInputs = form.querySelectorAll('input[name="DeletedOptionIds"]');
+                            console.log(`Toplam ${allDeletedInputs.length} adet silme inputu var.`); // Debug 5
+                            console.log('Eklenen input:', hiddenInput); // Debug 6
+            
+                            // Görsel olarak kaldır
+                            optionDiv.style.opacity = '0.5'; // Önce soluklaştır (kullanıcıya feedback)
+                            setTimeout(() => {
+                                optionDiv.remove();
+                                console.log('Div kaldırıldı'); // Debug 7
+                            }, 300);
+                        }
+
                         function addNewOption() {
+                            const currentType = document.getElementById('questionType').value;
+                            if (currentType !== 'SingleChoice' && currentType !== 'MultipleChoice') {
+                                alert('Seçenek sadece Single/Multiple Choice için eklenebilir!');
+                                return;
+                            }
+
                             const container = document.getElementById('newOptions');
                             const div = document.createElement('div');
                             div.className = 'input-group mb-2';
                             div.innerHTML = `
-                                <input type="text" name="NewOptions[${newOptionIndex}].Text"
+                                <input type="text" name="NewOptions"
                                        class="form-control bg-white/10 border-white/20 text-white"
                                        placeholder="Yeni seçenek" required>
                                 <button type="button" class="btn btn-outline-danger" onclick="this.parentElement.remove()">
@@ -161,21 +216,6 @@
                             `;
                             container.appendChild(div);
                             newOptionIndex++;
-                        }
-
-                        function removeExistingOption(btn) {
-                            const optionDiv = btn.closest('.existing-option');
-                            const optionId = optionDiv.getAttribute('data-option-id');
-            
-                            // Silinecek ID'yi form'a ekle
-                            const hiddenInput = document.createElement('input');
-                            hiddenInput.type = 'hidden';
-                            hiddenInput.name = 'DeletedOptionIds';
-                            hiddenInput.value = optionId;
-                            document.querySelector('form').appendChild(hiddenInput);
-            
-                            // Görsel olarak kaldır
-                            optionDiv.remove();
                         }
 
                         function confirmDelete(questionId, surveyId) {

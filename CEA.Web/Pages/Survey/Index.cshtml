@@ -1,247 +1,170 @@
-﻿@page "/s/{token}"
+﻿@page
 @model CEA.Web.Pages.Survey.IndexModel
+@using CEA.Core.Enums
 @{
-    Layout = "_PublicLayout";
     ViewData["Title"] = Model.Survey?.Title ?? "Anket";
+    Layout = "_PublicLayout"; // ✅ Admin layout yerine public layout kullan
 }
 
-@if (Model.Survey == null)
-{
-    <div class="survey-card text-center py-5">
-        <div class="text-danger mb-3"><i class="bi bi-exclamation-circle display-1"></i></div>
-        <h3>Anket Bulunamadı</h3>
-        <p class="text-muted">Bu bağlantı geçersiz veya anket artık aktif değil.</p>
-    </div>
-}
-else if (Model.IsCompleted)
-{
-    <div class="survey-card text-center py-5">
-        <div class="thank-you-icon">
-            <i class="bi bi-check-lg"></i>
-        </div>
-        <h2 class="mb-3">Teşekkürler!</h2>
-        <p class="text-muted mb-4">@Model.Survey.ThankYouMessage</p>
-        @if (!string.IsNullOrEmpty(Model.ComplaintTicket))
-        {
-            <div class="alert alert-warning">
-                <i class="bi bi-info-circle me-2"></i>
-                Düşük puanlarınız nedeniyle şikayet kaydı oluşturuldu: <strong>@Model.ComplaintTicket</strong>
-                <br>En kısa sürede size dönüş yapılacaktır.
+<div class="container mt-5 mb-5">
+    @if (!Model.ShowForm && !string.IsNullOrEmpty(Model.SuccessMessage))
+    {
+        <div class="row justify-content-center">
+            <div class="col-md-8 text-center">
+                <div class="card bg-success/20 border-success">
+                    <div class="card-body py-5">
+                        <i class="fas fa-check-circle fa-5x text-success mb-4"></i>
+                        <h2 class="text-white">@Model.SuccessMessage</h2>
+                        <p class="text-white/70 mt-3">Görüşleriniz bizim için çok değerlidir.</p>
+                        <a href="/" class="btn btn-glass-primary mt-3">Ana Sayfaya Dön</a>
+                    </div>
+                </div>
             </div>
-        }
-    </div>
-}
-else
-{
-    <div class="survey-card">
-        <!-- Header -->
-        <div class="survey-header">
-            <h1>@Model.Survey.Title</h1>
-            @if (!string.IsNullOrEmpty(Model.Survey.Description))
-            {
-                <p class="mb-0 opacity-75">@Model.Survey.Description</p>
+        </div>
+    }
+    else if (Model.Survey == null)
+    {
+        <div class="alert alert-danger text-center">
+            <h4>Anket bulunamadı veya süresi dolmuş.</h4>
+        </div>
+    }
+    else
+    {
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="glass-card">
+                    <div class="card-header bg-transparent border-bottom border-white/10 py-4">
+                        <h3 class="mb-0 text-white">@Model.Survey.Title</h3>
+                        @if (!string.IsNullOrEmpty(Model.Survey.Description))
+                        {
+                            <p class="mb-0 mt-2 text-white/70">@Model.Survey.Description</p>
+                        }
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                        {
+                            <div class="alert alert-danger">@Model.ErrorMessage</div>
+                        }
+
+                        <form method="post">
+                            <input type="hidden" asp-for="Token" />
+                            
+                            <div class="row g-3 mb-4 p-3 bg-white/5 rounded border border-white/10">
+                                <h5 class="mb-3 text-white"><i class="fas fa-user me-2"></i>İletişim Bilgileri</h5>
+                                <div class="col-md-6">
+                                    <label class="form-label text-white">Ad Soyad <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                                           asp-for="Response.CustomerName" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label text-white">E-posta <span class="text-danger">*</span></label>
+                                        <input type="email" class="form-control bg-white/10 border-white/20 text-white"
+                                               asp-for="Response.CustomerEmail" required>
+                                            <small class="text-white/50">Aynı e-posta ile tekrar yanıt veremezsiniz.</small>
+                                        </div>
+                                    </div>
+
+                                    <hr class="border-white/10 my-4">
+
+                                    <h5 class="mb-4 text-white"><i class="fas fa-clipboard-list me-2"></i>Anket Soruları</h5>
+                            
+                                    @for (int i = 0; i < Model.Questions.Count; i++)
+                                    {
+                                        var question = Model.Questions[i];
+                                        <div class="mb-4 p-3 border border-white/10 rounded bg-white/5">
+                                            <h6 class="fw-bold mb-3 text-white">
+                                                @(i + 1). @question.Text
+                                                @if (question.IsRequired)
+                                                {
+                                                    <span class="text-danger">*</span>
+                                                }
+                                            </h6>
+
+                                            @if (question.QuestionType == QuestionType.TextOpen)
+                                            {
+                                                <textarea class="form-control bg-white/10 border-white/20 text-white"
+                                                          name="Answers[@i].Value" rows="3"></textarea>
+                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
+                                            }
+                                            else if (question.QuestionType == QuestionType.RatingScale)
+                                            {
+                                                <div class="d-flex gap-2 justify-content-center">
+                                                    @for (int r = question.MinRating ?? 1; r <= (question.MaxRating ?? 5); r++)
+                                                    {
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="radio"
+                                                                   name="Answers[@i].RatingValue"
+                                                                   value="@r"
+                                                                   id="q@(question.Id)_r@(r)">
+                                                            <label class="form-check-label text-white" for="q@(question.Id)_r@(r)">@r</label>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
+                                                <input type="hidden" name="Answers[@i].Value" value="" />
+                                            }
+                                            else if (question.QuestionType == QuestionType.NpsScore)
+                                            {
+                                                <div class="d-flex gap-1 justify-content-center flex-wrap">
+                                                    @for (int r = 0; r <= 10; r++)
+                                                    {
+                                                        <div class="form-check form-check-inline">
+                                                            <input class="form-check-input" type="radio"
+                                                                   name="Answers[@i].RatingValue"
+                                                                   value="@r"
+                                                                   id="q@(question.Id)_nps@(r)">
+                                                            <label class="form-check-label text-white" for="q@(question.Id)_nps@(r)">@r</label>
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
+                                                <input type="hidden" name="Answers[@i].Value" value="" />
+                                            }
+                                            else if (question.QuestionType == QuestionType.SingleChoice)
+                                            {
+                                                @foreach (var option in question.Options.Where(o => !o.IsDeleted).OrderBy(o => o.DisplayOrder))
+                                                {
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="radio"
+                                                               name="Answers[@i].Value"
+                                                               value="@option.Text"
+                                                               id="opt_@option.Id">
+                                                        <label class="form-check-label text-white" for="opt_@option.Id">@option.Text</label>
+                                                    </div>
+                                                }
+                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
+                                            }
+                                            else if (question.QuestionType == QuestionType.MultipleChoice)
+                                            {
+                                                @foreach (var option in question.Options.Where(o => !o.IsDeleted).OrderBy(o => o.DisplayOrder))
+                                                {
+                                                    <div class="form-check">
+                                                        <input class="form-check-input" type="checkbox"
+                                                               name="Answers[@i].Value"
+                                                               value="@option.Text"
+                                                               id="opt_@option.Id">
+                                                        <label class="form-check-label text-white" for="opt_@option.Id">@option.Text</label>
+                                                    </div>
+                                                }
+                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="d-grid gap-2 mt-4">
+                                        <button type="submit" class="btn btn-glass-success btn-lg">
+                                            <i class="fas fa-paper-plane me-2"></i>Anketi Gönder
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             }
         </div>
 
-        <!-- Body -->
-        <div class="survey-body">
-            @if (!string.IsNullOrEmpty(Model.Survey.WelcomeMessage))
-            {
-                <div class="alert alert-info mb-4">
-                    <i class="bi bi-info-circle me-2"></i>@Model.Survey.WelcomeMessage
-                </div>
-            }
-
-            <form method="post" id="surveyForm" class="needs-validation" novalidate>
-                <input type="hidden" asp-for="Token" />
-                
-                <!-- Customer Info (Optional) -->
-                <div class="question-block">
-                    <div class="question-text">
-                        <span class="question-number"><i class="bi bi-person"></i></span>
-                        İletişim Bilgileri (İsteğe Bağlı)
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-4">
-                            <input asp-for="CustomerInfo.Name" class="form-control" placeholder="Adınız Soyadınız">
-                            </div>
-                            <div class="col-md-4">
-                                <input asp-for="CustomerInfo.Email" type="email" class="form-control" placeholder="E-posta Adresiniz">
-                                </div>
-                                <div class="col-md-4">
-                                    <input asp-for="CustomerInfo.Phone" class="form-control" placeholder="Telefon Numaranız">
-                                    </div>
-                                </div>
-                                <small class="text-muted">Bu bilgiler şikayet durumunda size ulaşmamız için kullanılacaktır.</small>
-                            </div>
-
-                            <!-- Questions -->
-                            @{
-                                int qIndex = 0;
-                            }
-                            @foreach (var question in Model.Questions)
-                            {
-                                qIndex++;
-                                <div class="question-block" data-question="@qIndex">
-                                    <div class="question-text">
-                                        <span class="question-number">@qIndex</span>
-                                        @question.Text
-                                        @if (question.IsRequired)
-                                        {
-                                            <span class="required-badge">* Zorunlu</span>
-                                        }
-                                    </div>
-
-                                    <input type="hidden" name="Answers[@(qIndex-1)].QuestionId" value="@question.Id" />
-
-                                    @switch (question.QuestionType)
-                                    {
-                                        case CEA.Core.Enums.QuestionType.RatingScale:
-                                            <div class="rating-group justify-content-center">
-                                                @for (int i = 5; i >= 1; i--)
-                                                {
-                                                    <input type="radio"
-                                                           name="Answers[@(qIndex-1)].NumericAnswer"
-                                                           value="@i"
-                                                           id="q@(question.Id)_@i"
-                                                           class="rating-input"
-                                                    @(question.IsRequired ? "required" : "")
-                                                           onchange="updateProgress(@qIndex, @Model.Questions.Count)">
-                                                    <label for="q@(question.Id)_@i" class="rating-label">
-                                                        <i class="bi bi-star-fill"></i>
-                                                    </label>
-                                                }
-                                            </div>
-                                            <div class="d-flex justify-content-between text-muted small mt-2 px-2">
-                                                <span>Çok Kötü</span>
-                                                <span>Çok İyi</span>
-                                            </div>
-                                            break;
-
-                                        case CEA.Core.Enums.QuestionType.NpsScore:
-                                            <div class="nps-scale">
-                                                @for (int i = 0; i <= 10; i++)
-                                                {
-                                                    <div class="nps-option">
-                                                        <input type="radio"
-                                                               name="Answers[@(qIndex-1)].NumericAnswer"
-                                                               value="@i"
-                                                               id="q@(question.Id)_@i"
-                                                               class="nps-input"
-                                                        @(question.IsRequired ? "required" : "")
-                                                               onchange="updateProgress(@qIndex, @Model.Questions.Count)">
-                                                        <label for="q@(question.Id)_@i" class="nps-label">@i</label>
-                                                    </div>
-                                                }
-                                            </div>
-                                            <div class="nps-legend">
-                                                <span><i class="bi bi-emoji-frown"></i> Kesinlikle Tavsiye Etmem</span>
-                                                <span><i class="bi bi-emoji-smile"></i> Kesinlikle Tavsiye Ederim</span>
-                                            </div>
-                                            break;
-
-                                        case CEA.Core.Enums.QuestionType.SingleChoice:
-                                            @foreach (var option in question.Options.OrderBy(o => o.DisplayOrder))
-                                            {
-                                                <label class="d-block m-0">
-                                                    <input type="radio"
-                                                           name="Answers[@(qIndex-1)].SelectedOptionIds"
-                                                           value="@option.Id"
-                                                           class="choice-input"
-                                                    @(question.IsRequired ? "required" : "")
-                                                           onchange="updateProgress(@qIndex, @Model.Questions.Count)">
-                                                    <div class="choice-option">
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="form-check-input-styled me-3" style="width:20px;height:20px;border:2px solid #d1d5db;border-radius:50%;"></div>
-                                                            @option.Text
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            }
-                                            break;
-
-                                        case CEA.Core.Enums.QuestionType.MultipleChoice:
-                                            @foreach (var option in question.Options.OrderBy(o => o.DisplayOrder))
-                                            {
-                                                <label class="d-block m-0">
-                                                    <input type="checkbox"
-                                                           name="Answers[@(qIndex-1)].SelectedOptionIds"
-                                                           value="@option.Id"
-                                                           class="choice-input"
-                                                           onchange="updateProgress(@qIndex, @Model.Questions.Count)">
-                                                    <div class="choice-option">
-                                                        <div class="d-flex align-items-center">
-                                                            <div class="form-check-input-styled me-3" style="width:20px;height:20px;border:2px solid #d1d5db;border-radius:4px;"></div>
-                                                            @option.Text
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                            }
-                                            break;
-
-                                        case CEA.Core.Enums.QuestionType.TextOpen:
-                                            <textarea name="Answers[@(qIndex-1)].TextAnswer"
-                                                      class="form-control"
-                                                      rows="4"
-                                                      placeholder="Görüşlerinizi buraya yazabilirsiniz..."
-                                            @(question.IsRequired ? "required" : "")
-                                                      onchange="updateProgress(@qIndex, @Model.Questions.Count)"></textarea>
-                                            break;
-                                    }
-
-                                    @if (question.IsRequired)
-                                    {
-                                        <div class="validation-message">Bu soruyu yanıtlamanız gerekiyor.</div>
-                                    }
-                                </div>
-                            }
-
-                            <div class="d-grid gap-2 mt-4">
-                                <button type="submit" class="btn-submit" id="submitBtn">
-                                    <span class="spinner"></span>
-                                    <span class="btn-text">Anketi Gönder</span>
-                                </button>
-                                <small class="text-center text-muted">
-                                    <i class="bi bi-shield-check me-1"></i>
-                                    Bilgileriniz güvenle saklanır ve üçüncü taraflarla paylaşılmaz.
-                                </small>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                @section Scripts {
-                    <script>
-                        // Initialize progress
-                        updateProgress(0, @Model.Questions.Count);
-
-                        // Form submit handling
-                        document.getElementById('surveyForm').addEventListener('submit', function(e) {
-                            const btn = document.getElementById('submitBtn');
-                            btn.disabled = true;
-                            btn.classList.add('loading');
-                            btn.querySelector('.btn-text').textContent = 'Gönderiliyor...';
-                        });
-
-                        // Checkbox handling for multiple choice
-                        document.querySelectorAll('input[type="checkbox"].choice-input').forEach(cb => {
-                            cb.addEventListener('change', function() {
-                                const name = this.name;
-                                const checked = document.querySelectorAll(`input[name="${name}"]:checked`);
-                                const values = Array.from(checked).map(c => c.value).join(',');
-                    
-                                // Hidden input for combined values
-                                let hidden = document.querySelector(`input[type="hidden"][name="${name}"]`);
-                                if (!hidden) {
-                                    hidden = document.createElement('input');
-                                    hidden.type = 'hidden';
-                                    hidden.name = name;
-                                    this.closest('.question-block').appendChild(hidden);
-                                }
-                                hidden.value = values;
-                            });
-                        });
-                    </script>
-                    
-                }
-            }
+        @section Scripts {
+            <partial name="_ValidationScriptsPartial" />
+        }

@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace CEA.Data
 {
@@ -21,6 +22,7 @@ namespace CEA.Data
         public DbSet<Complaint> Complaints { get; set; } = null!;
         public DbSet<ComplaintNote> ComplaintNotes { get; set; } = null!;
         public DbSet<Setting> Settings { get; set; } = null!;
+        public DbSet<Customer> Customers { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -78,6 +80,15 @@ namespace CEA.Data
                 CanHandleComplaints = true,
                 CreatedAt = new DateTime(2024, 1, 1),
                 CreatedBy = "Seed"
+            });
+
+            builder.Entity<Customer>(entity =>
+            {
+                entity.HasIndex(c => c.Email).IsUnique(); // Email unique olmalı
+                entity.HasIndex(c => c.Segment); // Segment bazlı arama için
+                entity.HasIndex(c => c.IsDeleted); // Soft delete filtreleri için
+
+                entity.HasQueryFilter(c => !c.IsDeleted); // Global soft delete filtresi
             });
         }
     }

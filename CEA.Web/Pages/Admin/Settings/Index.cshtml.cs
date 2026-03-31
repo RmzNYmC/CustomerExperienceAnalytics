@@ -1,10 +1,8 @@
 using CEA.Business.Services;
-using CEA.Core.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using System.ComponentModel.DataAnnotations;
-using System.Threading.Tasks;
 
 namespace CEA.Web.Pages.Admin.Settings
 {
@@ -24,50 +22,85 @@ namespace CEA.Web.Pages.Admin.Settings
         public SmtpSettingsViewModel SmtpSettings { get; set; } = new();
 
         [BindProperty]
-        [EmailAddress]
-        public string TestEmail { get; set; } = string.Empty;
+        public string TestEmail { get; set; } = string.Empty; // Required kaldırıldı!
 
         [BindProperty]
         public string? TestMessage { get; set; }
 
+        [TempData]
         public string? SuccessMessage { get; set; }
+
+        [TempData]
+        public string? ErrorMessage { get; set; }
 
         public async Task OnGetAsync()
         {
-            // Mevcut ayarları yükle
+            await LoadSettingsAsync();
+        }
+
+        private async Task LoadSettingsAsync()
+        {
             SmtpSettings.Host = await _settingsService.GetSettingAsync("SMTP_Host", "smtp.gmail.com");
             SmtpSettings.Port = int.Parse(await _settingsService.GetSettingAsync("SMTP_Port", "587"));
+            SmtpSettings.EnableSsl = bool.Parse(await _settingsService.GetSettingAsync("SMTP_EnableSsl", "true"));
             SmtpSettings.FromName = await _settingsService.GetSettingAsync("SMTP_FromName", "Turkon Lojistik");
             SmtpSettings.FromEmail = await _settingsService.GetSettingAsync("SMTP_From", "noreply@turkon.com");
             SmtpSettings.Username = await _settingsService.GetSettingAsync("SMTP_Username", "");
-            // Şifreyi gösterme, boş bırak
-            SmtpSettings.Password = await _settingsService.GetSettingAsync("SMTP_Password", "");
+            SmtpSettings.Password = ""; // Şifreyi gösterme
         }
 
         public async Task<IActionResult> OnPostSaveSmtpAsync()
         {
+            // Sadece SmtpSettings validasyonunu kontrol et
             if (!ModelState.IsValid)
             {
+                // ModelState'ten sadece SmtpSettings ile ilgili hataları al
+                var errors = ModelState
+                    .Where(x => x.Key.StartsWith("SmtpSettings"))
+                    .SelectMany(x => x.Value.Errors)
+                    .Select(e => e.ErrorMessage);
+
+                if (errors.Any())
+                {
+                    ErrorMessage = "Formda hata var: " + string.Join(", ", errors);
+                    return Page();
+                }
+            }
+
+            try
+            {
+                await _settingsService.SetSettingAsync("SMTP_Host", SmtpSettings.Host, "SMTP");
+                await _settingsService.SetSettingAsync("SMTP_Port", SmtpSettings.Port.ToString(), "SMTP");
+                await _settingsService.SetSettingAsync("SMTP_EnableSsl", SmtpSettings.EnableSsl.ToString(), "SMTP");
+                await _settingsService.SetSettingAsync("SMTP_FromName", SmtpSettings.FromName, "SMTP");
+                await _settingsService.SetSettingAsync("SMTP_From", SmtpSettings.FromEmail, "SMTP");
+                await _settingsService.SetSettingAsync("SMTP_Username", SmtpSettings.Username, "SMTP");
+
+                if (!string.IsNullOrWhiteSpace(SmtpSettings.Password))
+                {
+                    await _settingsService.SetSettingAsync("SMTP_Password", SmtpSettings.Password, "SMTP");
+                }
+
+                SuccessMessage = "SMTP ayarları başarıyla kaydedildi.";
+                return RedirectToPage();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = $"Kayıt hatası: {ex.Message}";
                 return Page();
             }
-
-            await _settingsService.SetSettingAsync("SMTP_Host", SmtpSettings.Host, "SMTP");
-            await _settingsService.SetSettingAsync("SMTP_Port", SmtpSettings.Port.ToString(), "SMTP");
-            await _settingsService.SetSettingAsync("SMTP_FromName", SmtpSettings.FromName, "SMTP");
-            await _settingsService.SetSettingAsync("SMTP_From", SmtpSettings.FromEmail, "SMTP");
-            await _settingsService.SetSettingAsync("SMTP_Username", SmtpSettings.Username, "SMTP");
-
-            if (!string.IsNullOrEmpty(SmtpSettings.Password))
-            {
-                await _settingsService.SetSettingAsync("SMTP_Password", SmtpSettings.Password, "SMTP");
-            }
-
-            SuccessMessage = "SMTP ayarları başarıyla kaydedildi.";
-            return RedirectToPage();
         }
 
         public async Task<IActionResult> OnPostSendTestAsync()
         {
+            // TestEmail boş mu kontrol et
+            if (string.IsNullOrWhiteSpace(TestEmail))
+            {
+                ErrorMessage = "Test maili için e-posta adresi girin.";
+                await LoadSettingsAsync();
+                return Page();
+            }
+
             try
             {
                 var subject = "Turkon Lojistik - Test Maili";
@@ -83,36 +116,37 @@ namespace CEA.Web.Pages.Admin.Settings
                     </html>";
 
                 await _emailService.SendEmailAsync(TestEmail, subject, body);
-
-                SuccessMessage = $"Test maili başarıyla gönderildi: {TestEmail}";
+                SuccessMessage = $"Test maili gönderildi: {TestEmail}";
             }
             catch (Exception ex)
             {
-                ModelState.AddModelError("", $"Mail gönderilemedi: {ex.Message}");
+                ErrorMessage = $"Mail gönderilemedi: {ex.Message}";
             }
 
-            // SMTP ayarlarını tekrar yükle 
-            await OnGetAsync();
+            await LoadSettingsAsync();
             return Page();
         }
     }
 
     public class SmtpSettingsViewModel
     {
-        [Required]
+        [Required(ErrorMessage = "SMTP sunucu zorunludur")]
         public string Host { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Port zorunludur")]
+        [Range(1, 65535, ErrorMessage = "Geçerli bir port numarası girin")]
         public int Port { get; set; } = 587;
 
-        [Required]
+        public bool EnableSsl { get; set; } = true;
+
+        [Required(ErrorMessage = "Gönderici adı zorunludur")]
         public string FromName { get; set; } = string.Empty;
 
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "Gönderici e-posta zorunludur")]
+        [EmailAddress(ErrorMessage = "Geçerli bir e-posta girin")]
         public string FromEmail { get; set; } = string.Empty;
 
-        [Required]
+        [Required(ErrorMessage = "Kullanıcı adı zorunludur")]
         public string Username { get; set; } = string.Empty;
 
         public string Password { get; set; } = string.Empty;

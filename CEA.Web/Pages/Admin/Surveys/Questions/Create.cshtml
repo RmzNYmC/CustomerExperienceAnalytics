@@ -114,12 +114,20 @@
                             const ratingDiv = document.getElementById('ratingSettings');
                             const optionsDiv = document.getElementById('optionsContainer');
                             const optionsHelp = document.getElementById('optionsHelp');
+                            const optionsInputs = document.querySelectorAll('#optionsList input');
             
-                            // Tümü gizle
-                            ratingDiv.style.display = 'none';
+                                        // Tümü gizle ve required attribute'larını temizle (ÖNCE TEMİZLE)
+                        ratingDiv.style.display = 'none';
+                        optionsDiv.style.display = 'none';
+                        // TÜM inputlardan required attribute'unu kaldır (Kritik fix!)
+            
             
                             // Tip'e göre göster
                             if (type === 'RatingScale') {
+                                            optionsInputs.forEach(input => {
+                            input.removeAttribute('required');
+                            input.disabled = true; // Disabled yaparak form submission'da gönderilmez
+                        });
                                 ratingDiv.style.display = 'block';
                                 optionsDiv.style.display = 'none'; // Seçenek gerekmez
                             } else if (type === 'SingleChoice' || type === 'MultipleChoice') {

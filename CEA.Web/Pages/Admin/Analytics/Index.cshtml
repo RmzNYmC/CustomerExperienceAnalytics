@@ -66,6 +66,21 @@
 
 @if (Model.AnalysisResult != null)
 {
+    <!-- DEBUG: Bu satırları ekleyin -->
+    <div class="alert alert-info">
+        <h5>DEBUG BİLGİLERİ:</h5>
+        <ul>
+            <li>Toplam Soru: <strong>@Model.AnalysisResult.QuestionBreakdown.Count</strong></li>
+            @foreach (var q in Model.AnalysisResult.QuestionBreakdown)
+            {
+                <li>
+                    "@q.QuestionText" -
+                    Tip: @q.Type -
+                    Dağılım Sayısı: <strong>@(q.Distribution?.Count ?? 0)</strong>
+                </li>
+            }
+        </ul>
+    </div>
     <!-- Summary Cards -->
     <div class="row g-4 mb-4">
         <div class="col-md-3">
@@ -190,72 +205,67 @@
     </div>
 
     <!-- Question Details -->
-    <div class="stat-card">
-        <h6 class="mb-4">Soru Bazlı Detaylı Analiz</h6>
-        
-        <div class="accordion" id="questionAccordion">
+    <!-- Soru Bazlı Detaylı Analiz -->
+    <!-- Soru Bazlı Detaylı Analiz - DÜZ LİSTE -->
+    <div class="glass-card mt-4">
+        <div class="card-header bg-transparent border-bottom border-white/10">
+            <h6 class="mb-0 text-white"><i class="fas fa-list me-2"></i>Soru Bazlı Detaylı Analiz</h6>
+        </div>
+        <div class="card-body">
             @foreach (var question in Model.AnalysisResult.QuestionBreakdown)
             {
-                <div class="accordion-item mb-2 border">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button @(question != Model.AnalysisResult.QuestionBreakdown.First() ? "collapsed" : "")"
-                                type="button" data-bs-toggle="collapse" data-bs-target="#q-@question.QuestionId">
-                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
-                                <span>
-                                    <span class="badge bg-secondary me-2">@question.Type</span>
-                                    @question.QuestionText
-                                </span>
-                                <span class="badge bg-primary">Ort: @question.AverageScore.ToString("F2")</span>
-                            </div>
-                        </button>
-                    </h2>
-                    <div id="q-@question.QuestionId" class="accordion-collapse collapse @(question == Model.AnalysisResult.QuestionBreakdown.First() ? "show" : "")">
-                        <div class="accordion-body">
-                            @if (question.Distribution.Any())
-                            {
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Cevap/Seçenek</th>
-                                                <th>Sayı</th>
-                                                <th>Yüzde</th>
-                                                <th>Görsel</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var dist in question.Distribution)
-                                            {
-                                                <tr>
-                                                    <td>@dist.Label</td>
-                                                    <td>@dist.Count</td>
-                                                    <td>%@dist.Percentage.ToString("F1")</td>
-                                                    <td style="width: 40%;">
-                                                        <div class="progress" style="height: 20px;">
-                                                            <div class="progress-bar @(dist.Percentage > 50 ? "bg-success" : dist.Percentage > 25 ? "bg-warning" : "bg-danger")"
-                                                                 role="progressbar" style="width: @dist.Percentage%"></div>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            }
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                @if (question.Type == CEA.Core.Enums.QuestionType.RatingScale ||
-                                                                     question.Type == CEA.Core.Enums.QuestionType.NpsScore)
-                                {
-                                    <div class="mt-3">
-                                        <canvas id="chart-q-@question.QuestionId" height="100"></canvas>
-                                    </div>
-                                }
-                            }
-                            else
-                            {
-                                <p class="text-muted">Bu soru tipi için dağılım grafiği oluşturulamaz.</p>
-                            }
+                <div class="mb-4 p-3 border border-white/10 rounded bg-white/5">
+                    <!-- Soru Başlığı -->
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom border-white/10">
+                        <div>
+                            <span class="badge bg-secondary me-2">@question.Type</span>
+                            <span class="fw-bold text-white">@question.QuestionText</span>
                         </div>
+                        <span class="badge bg-primary">Ort: @question.AverageScore.ToString("F2")</span>
                     </div>
+
+                    <!-- Dağılım Tablosu -->
+                    @if (question.Distribution != null && question.Distribution.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm table-dark table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 40%;">Cevap/Seçenek</th>
+                                        <th style="width: 15%;" class="text-center">Sayı</th>
+                                        <th style="width: 15%;" class="text-center">Yüzde</th>
+                                        <th style="width: 30%;">Görsel</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var dist in question.Distribution)
+                                    {
+                                        <tr>
+                                            <td class="text-white">@dist.Label</td>
+                                            <td class="text-center text-white fw-bold">@dist.Count</td>
+                                            <td class="text-center text-white">%@dist.Percentage.ToString("F1")</td>
+                                            <td>
+                                                <div class="progress" style="height: 20px; background-color: rgba(255,255,255,0.1);">
+                                                    <div class="progress-bar @(dist.Percentage > 50 ? "bg-success" : dist.Percentage > 25 ? "bg-warning" : "bg-danger")"
+                                                         role="progressbar"
+                                                         style="width: @dist.Percentage%">
+                                                        @dist.Percentage.ToString("F0")%
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning bg-white/10 border-white/20 text-white mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Bu soru için henüz yanıt verilmemiş.
+                        </div>
+                    }
                 </div>
             }
         </div>

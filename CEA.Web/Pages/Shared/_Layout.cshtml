@@ -60,6 +60,13 @@
                 <a href="/Admin/Surveys/Index" class="sidebar-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("Survey") == true ? "active" : "")">
                     <i class="fas fa-clipboard-check w-6"></i>
                     <span>Anket Yönetimi</span>
+
+                    <!-- ✅ BURAYA EKLEYİN -->
+                    <a href="/Admin/Customers" class="sidebar-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("Customer") == true ? "active" : "")">
+                        <i class="fas fa-address-book w-6"></i>
+                        <span>Müşteri Yönetimi</span>
+                    </a>
+
                 </a>
                 <a href="/Admin/Analytics/Index" class="sidebar-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("Analytics") == true ? "active" : "")">
                     <i class="fas fa-chart-line w-6"></i>

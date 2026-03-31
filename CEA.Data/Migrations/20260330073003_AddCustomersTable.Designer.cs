@@ -4,6 +4,7 @@ using CEA.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CEA.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260330073003_AddCustomersTable")]
+    partial class AddCustomersTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1039,7 +1042,7 @@ namespace CEA.Data.Migrations
 
             modelBuilder.Entity("CEA.Core.Entities.SurveyResponse", b =>
                 {
-                    b.HasOne("CEA.Core.Entities.Customer", "Customer")
+                    b.HasOne("CEA.Core.Entities.Customer", null)
                         .WithMany("Responses")
                         .HasForeignKey("CustomerId");
 
@@ -1053,8 +1056,6 @@ namespace CEA.Data.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Customer");
 
                     b.Navigation("Survey");
 

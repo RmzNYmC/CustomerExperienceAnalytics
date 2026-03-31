@@ -5,6 +5,8 @@
         public DateTime SubmittedAt { get; set; } = DateTime.Now;
         public DateTime? CompletedAt { get; set; }
 
+        public int? CustomerId { get; set; }
+        public Customer? Customer { get; set; }
         public string? CustomerEmail { get; set; }
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }

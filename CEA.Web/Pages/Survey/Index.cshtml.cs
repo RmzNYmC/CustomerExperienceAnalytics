@@ -1,4 +1,3 @@
-using CEA.Business.Services;
 using CEA.Core.Entities;
 using CEA.Core.Enum;
 using CEA.Core.Enums;
@@ -6,208 +5,211 @@ using CEA.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
 
 namespace CEA.Web.Pages.Survey
 {
     public class IndexModel : PageModel
     {
         private readonly ApplicationDbContext _context;
-        private readonly IComplaintAutomationService _complaintService;
-        private readonly ILogger<IndexModel> _logger;
+
+        public IndexModel(ApplicationDbContext context)
+        {
+            _context = context;
+        }
 
         [BindProperty(SupportsGet = true)]
         public string Token { get; set; } = string.Empty;
 
-        [BindProperty]
-        public CustomerInfoInput CustomerInfo { get; set; } = new();
+        public CEA.Core.Entities.Survey? Survey { get; set; }
+        public List<CEA.Core.Entities.Question> Questions { get; set; } = new();
 
         [BindProperty]
-        public List<AnswerInput> Answers { get; set; } = new();
+        public CEA.Core.Entities.SurveyResponse Response { get; set; } = new();
 
-        public Core.Entities.Survey? Survey { get; set; }
-        public List<Question> Questions { get; set; } = new();
-        public bool IsCompleted { get; set; } = false;
-        public string? ComplaintTicket { get; set; }
+        [BindProperty]
+        public List<AnswerViewModel> Answers { get; set; } = new();
 
-        public IndexModel(
-            ApplicationDbContext context,
-            IComplaintAutomationService complaintService,
-            ILogger<IndexModel> logger)
-        {
-            _context = context;
-            _complaintService = complaintService;
-            _logger = logger;
-        }
+        public string? ErrorMessage { get; set; }
+        public string? SuccessMessage { get; set; }
+        public bool ShowForm { get; set; } = true;
 
         public async Task<IActionResult> OnGetAsync()
         {
             if (string.IsNullOrEmpty(Token))
                 return NotFound();
 
+            // ❌ KALDIRILDI: Token bazlı cookie kontrolü (herkesi engelliyordu!)
+            // Artık sadece email bazlı veritabanı kontrolü yapacağız (OnPost'ta)
+
             Survey = await _context.Surveys
-                .Include(s => s.Questions)
-                .ThenInclude(q => q.Options)
-                .FirstOrDefaultAsync(s => s.PublicToken == Token && !s.IsDeleted);
+                .FirstOrDefaultAsync(s => s.PublicToken == Token && !s.IsDeleted
+                    && s.Status == SurveyStatus.Active);
 
-            if (Survey == null || Survey.Status != SurveyStatus.Active)
-                return Page();
-
-            if (Survey.StartDate.HasValue && Survey.StartDate > DateTime.Now)
-                return Page();
-
-            if (Survey.EndDate.HasValue && Survey.EndDate < DateTime.Now)
-                return Page();
-
-            Questions = Survey.Questions
-                .Where(q => !q.IsDeleted)
-                .OrderBy(q => q.DisplayOrder)
-                .ToList();
-
-            if (!Survey.AllowMultipleResponses && !string.IsNullOrEmpty(CustomerInfo.Email))
+            if (Survey == null)
             {
-                var existing = await _context.SurveyResponses
-                    .AnyAsync(r => r.SurveyId == Survey.Id &&
-                                  r.CustomerEmail == CustomerInfo.Email &&
-                                  !r.IsDeleted);
-                if (existing)
-                {
-                    ModelState.AddModelError("", "Bu e-posta adresi ile zaten yanıt verilmiş.");
-                }
+                ErrorMessage = "Anket bulunamadı veya süresi dolmuş.";
+                ShowForm = false;
+                return Page();
             }
 
+            // Soruları getir
+            Questions = await _context.Questions
+                .Where(q => q.SurveyId == Survey.Id && !q.IsDeleted)
+                .Include(q => q.Options)
+                .OrderBy(q => q.DisplayOrder)
+                .ToListAsync();
+
+            ShowForm = true;
             return Page();
         }
 
         public async Task<IActionResult> OnPostAsync()
         {
+            // Navigation property'leri validasyondan çıkar
+            ModelState.Remove("Response.Survey");
+            ModelState.Remove("Response.Customer");
+            ModelState.Remove("Response.User");
+
+            foreach (var key in ModelState.Keys.Where(k => k.StartsWith("Answers[") && k.EndsWith("].Value")).ToList())
+            {
+                ModelState.Remove(key);
+            }
             Survey = await _context.Surveys
-                .Include(s => s.Questions)
                 .FirstOrDefaultAsync(s => s.PublicToken == Token && !s.IsDeleted);
 
             if (Survey == null)
                 return NotFound();
 
-            Questions = Survey.Questions
-                .Where(q => !q.IsDeleted)
-                .OrderBy(q => q.DisplayOrder)
-                .ToList();
+            // DEBUG: Answers listesini kontrol et
+            System.Diagnostics.Debug.WriteLine($"Gelen cevap sayısı: {Answers?.Count ?? 0}");
+            if (Answers != null)
+            {
+                foreach (var ans in Answers)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Q:{ans.QuestionId} - V:{ans.Value} - R:{ans.RatingValue}");
+                }
+            }
 
             if (!ModelState.IsValid)
+            {
+                var errors = string.Join(", ", ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage));
+
+                ErrorMessage = "Lütfen zorunlu alanları doldurun: " + errors;
+
+                Questions = await _context.Questions
+                    .Where(q => q.SurveyId == Survey.Id && !q.IsDeleted)
+                    .Include(q => q.Options)
+                    .OrderBy(q => q.DisplayOrder)
+                    .ToListAsync();
                 return Page();
-
-            var response = new SurveyResponse
-            {
-                SurveyId = Survey.Id,
-                CustomerEmail = CustomerInfo.Email,
-                CustomerName = CustomerInfo.Name,
-                CustomerPhone = CustomerInfo.Phone,
-                SubmittedAt = DateTime.Now,
-                CompletedAt = DateTime.Now,
-                ResponseYear = DateTime.Now.Year,
-                ResponseMonth = DateTime.Now.Month,
-                IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = Request.Headers["User-Agent"].ToString()
-            };
-
-            foreach (var answerInput in Answers)
-            {
-                var question = Questions.FirstOrDefault(q => q.Id == answerInput.QuestionId);
-                if (question == null) continue;
-
-                var answer = new Answer
-                {
-                    QuestionId = question.Id,
-                    CreatedAt = DateTime.Now
-                };
-
-                switch (question.QuestionType)
-                {
-                    case QuestionType.RatingScale:
-                    case QuestionType.NpsScore:
-                        answer.NumericAnswer = answerInput.NumericAnswer;
-                        answer.Score = answerInput.NumericAnswer;
-                        break;
-
-                    case QuestionType.SingleChoice:
-                    case QuestionType.MultipleChoice:
-                        answer.SelectedOptionIds = answerInput.SelectedOptionIds;
-                        if (!string.IsNullOrEmpty(answerInput.SelectedOptionIds))
-                        {
-                            var optionIds = answerInput.SelectedOptionIds.Split(',');
-                            var options = await _context.QuestionOptions
-                                .Where(o => optionIds.Contains(o.Id.ToString()))
-                                .ToListAsync();
-                            answer.Score = (decimal?)options.Average(o => o.ScoreValue ?? 0);
-                        }
-                        break;
-
-                    case QuestionType.TextOpen:
-                        answer.TextAnswer = answerInput.TextAnswer;
-                        break;
-                }
-
-                response.Answers.Add(answer);
             }
-
-            // DÜZELTİLDİ: Satır 141 - (decimal?) cast eklendi
-            var numericAnswers = response.Answers.Where(a => a.Score.HasValue).Select(a => a.Score.Value);
-            if (numericAnswers.Any())
-            {
-                response.OverallSatisfactionScore = (decimal?)numericAnswers.Average();
-            }
-
-            // DÜZELTİLDİ: Satır 154 - null kontrolü eklendi
-            var npsAnswer = response.Answers
-                .FirstOrDefault(a => a.Question != null && a.Question.QuestionType == QuestionType.NpsScore);
-
-            if (npsAnswer != null && npsAnswer.NumericAnswer.HasValue)
-            {
-                response.NpsScore = npsAnswer.NumericAnswer.Value;
-            }
-
-            _context.SurveyResponses.Add(response);
-            await _context.SaveChangesAsync();
-
-            _logger.LogInformation("Anket yanıtı kaydedildi: ResponseId={ResponseId}, SurveyId={SurveyId}",
-                response.Id, Survey.Id);
 
             try
             {
-                await _complaintService.CheckAndCreateComplaintAsync(response.Id);
-
-                var complaints = await _context.Complaints
-                    .Where(c => c.SurveyResponseId == response.Id)
-                    .ToListAsync();
-
-                if (complaints.Any())
+                // ✅ VERİTABANI KONTROLÜ: Aynı email ile daha önce yanıt vermiş mi?
+                if (!string.IsNullOrEmpty(Response.CustomerEmail))
                 {
-                    ComplaintTicket = complaints.First().TicketNumber;
+                    var existingResponse = await _context.SurveyResponses
+                        .FirstOrDefaultAsync(r => r.SurveyId == Survey.Id
+                            && r.CustomerEmail == Response.CustomerEmail
+                            && !r.IsDeleted);
+
+                    if (existingResponse != null)
+                    {
+                        // Bu kişi zaten yanıt vermiş
+                        SuccessMessage = "Bu e-posta adresi ile anketi zaten tamamladınız. Değerli geri dönüşleriniz için teşekkür ederiz!";
+                        ShowForm = false;
+                        return Page();
+                    }
                 }
+
+                // Yanıtı kaydet
+                Response.SurveyId = Survey.Id;
+                Response.SubmittedAt = DateTime.Now;
+                Response.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                Response.UserAgent = Request.Headers["User-Agent"].ToString();
+                Response.ResponseYear = DateTime.Now.Year;
+                Response.ResponseMonth = DateTime.Now.Month;
+
+                // CustomerId'yi bul
+                if (!string.IsNullOrEmpty(Response.CustomerEmail))
+                {
+                    var existingCustomer = await _context.Customers
+                        .FirstOrDefaultAsync(c => c.Email == Response.CustomerEmail && !c.IsDeleted);
+
+                    if (existingCustomer != null)
+                    {
+                        Response.CustomerId = existingCustomer.Id;
+                    }
+                }
+
+                _context.SurveyResponses.Add(Response);
+                await _context.SaveChangesAsync();
+
+                // Cevapları kaydet
+                if (Answers != null && Answers.Any())
+                {
+                    foreach (var answer in Answers)
+                    {
+                        // Boş cevapları atla
+                        if (string.IsNullOrWhiteSpace(answer.Value) && !answer.RatingValue.HasValue)
+                            continue;
+
+                        // Soru tipini bul (kontrol için)
+                        var question = await _context.Questions.FindAsync(answer.QuestionId);
+
+                        var newAnswer = new CEA.Core.Entities.Answer
+                        {
+                            ResponseId = Response.Id,
+                            QuestionId = answer.QuestionId,
+                            CreatedAt = DateTime.Now
+                        };
+
+                        // ✅ Rating/NPS için NumericAnswer kullan
+                        if (answer.RatingValue.HasValue)
+                        {
+                            newAnswer.NumericAnswer = answer.RatingValue;
+                            newAnswer.TextAnswer = answer.Value; // Opsiyonel: metin olarak da kaydet
+                        }
+                        else
+                        {
+                            // ✅ Metin cevapları için TextAnswer kullan
+                            newAnswer.TextAnswer = answer.Value;
+                        }
+
+                        _context.Answers.Add(newAnswer);
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+                // Teşekkür sayfasına yönlendir
+                return RedirectToPage("/Survey/ThankYou", new { token = Token });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Şikayet kontrolü sırasında hata");
-            }
+                ErrorMessage = "Bir hata oluştu: " + ex.Message;
 
-            IsCompleted = true;
-            return Page();
+                if (Survey != null)
+                {
+                    Questions = await _context.Questions
+                        .Where(q => q.SurveyId == Survey.Id && !q.IsDeleted)
+                        .Include(q => q.Options)
+                        .OrderBy(q => q.DisplayOrder)
+                        .ToListAsync();
+                }
+                return Page();
+            }
         }
     }
 
-    public class CustomerInfoInput
-    {
-        public string? Name { get; set; }
-        [EmailAddress]
-        public string? Email { get; set; }
-        public string? Phone { get; set; }
-    }
-
-    public class AnswerInput
+    public class AnswerViewModel
     {
         public int QuestionId { get; set; }
-        public int? NumericAnswer { get; set; }
-        public string? SelectedOptionIds { get; set; }
-        public string? TextAnswer { get; set; }
+
+         
+        public string? Value { get; set; }
+        public int? RatingValue { get; set; }
     }
 }

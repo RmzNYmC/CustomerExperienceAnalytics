@@ -1,0 +1,73 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Customers.CreateModel
+@{
+    ViewData["Title"] = "Yeni Müşteri";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4><i class="fas fa-user-plus me-2"></i>Yeni Müşteri Ekle</h4>
+            <a href="/Admin/Customers" class="btn btn-outline-light btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Listeye Dön
+            </a>
+        </div>
+
+        <div class="glass-card p-4">
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-white">İsim <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                               asp-for="Customer.Name" required>
+                            <span asp-validation-for="Customer.Name" class="text-danger"></span>
+                        </div>
+                    
+                        <div class="col-md-6">
+                            <label class="form-label text-white">E-posta <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control bg-white/10 border-white/20 text-white"
+                                   asp-for="Customer.Email" required>
+                                <span asp-validation-for="Customer.Email" class="text-danger"></span>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label text-white">Şirket</label>
+                                <input type="text" class="form-control bg-white/10 border-white/20 text-white"
+                                       asp-for="Customer.CompanyName">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label text-white">Telefon</label>
+                                    <input type="tel" class="form-control bg-white/10 border-white/20 text-white"
+                                           asp-for="Customer.Phone">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label text-white">Segment</label>
+                                        <select class="form-select bg-white/10 border-white/20 text-white" asp-for="Customer.Segment">
+                                            <option value="">Seçiniz</option>
+                                            <option value="VIP">VIP</option>
+                                            <option value="Enterprise">Kurumsal</option>
+                                            <option value="B2B">B2B</option>
+                                            <option value="Standard">Standart</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end gap-2 mt-4">
+                                    <a href="/Admin/Customers" class="btn btn-outline-light">İptal</a>
+                                    <button type="submit" class="btn btn-glass-primary">
+                                        <i class="fas fa-save me-2"></i>Kaydet
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                @section Scripts {
+                    <partial name="_ValidationScriptsPartial" />
+                }

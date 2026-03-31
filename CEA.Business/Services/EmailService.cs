@@ -30,7 +30,11 @@ namespace CEA.Business.Services
             email.Body = builder.ToMessageBody();
 
             using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(settings.Host, settings.Port, MailKit.Security.SecureSocketOptions.StartTls);
+            var secureOption = settings.EnableSsl
+    ? MailKit.Security.SecureSocketOptions.StartTls
+    : MailKit.Security.SecureSocketOptions.None;
+
+            await smtp.ConnectAsync(settings.Host, settings.Port, secureOption);
 
             if (!string.IsNullOrEmpty(settings.Username))
             {
@@ -105,11 +109,13 @@ namespace CEA.Business.Services
         private async Task<SmtpSettings> GetSmtpSettingsAsync()
         {
             var portStr = await _settingsService.GetSettingAsync("SMTP_Port", "587");
+            var enableSslStr = await _settingsService.GetSettingAsync("SMTP_EnableSsl", "true");
 
             return new SmtpSettings
             {
                 Host = await _settingsService.GetSettingAsync("SMTP_Host", "smtp.gmail.com"),
                 Port = int.TryParse(portStr, out var port) ? port : 587,
+                EnableSsl = bool.TryParse(enableSslStr, out var ssl) ? ssl : true, // <-- EKLENDİ
                 Username = await _settingsService.GetSettingAsync("SMTP_Username", ""),
                 Password = await _settingsService.GetSettingAsync("SMTP_Password", ""),
                 FromEmail = await _settingsService.GetSettingAsync("SMTP_From", "noreply@turkon.com"),
@@ -122,6 +128,7 @@ namespace CEA.Business.Services
     {
         public string Host { get; set; } = string.Empty;
         public int Port { get; set; }
+        public bool EnableSsl { get; set; } = true; // <-- EKLENDİ
         public string Username { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
         public string FromEmail { get; set; } = string.Empty;
