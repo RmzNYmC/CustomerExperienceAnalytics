@@ -1,3 +1,4 @@
+using CEA.Business.Services;  // ⭐ EKLENDİ
 using CEA.Core.Entities;
 using CEA.Core.Enum;
 using CEA.Core.Enums;
@@ -11,12 +12,16 @@ namespace CEA.Web.Pages.Survey
     public class IndexModel : PageModel
     {
         private readonly ApplicationDbContext _context;
+        private readonly IComplaintAutomationService _complaintService;  // ⭐ EKLENDİ
 
-        public IndexModel(ApplicationDbContext context)
+        // ⭐ EKLENDİ: Constructor'a service eklendi
+        public IndexModel(ApplicationDbContext context, IComplaintAutomationService complaintService)
         {
             _context = context;
+            _complaintService = complaintService;
         }
 
+        // ... mevcut property'ler aynen kalıyor ...
         [BindProperty(SupportsGet = true)]
         public string Token { get; set; } = string.Empty;
 
@@ -38,9 +43,6 @@ namespace CEA.Web.Pages.Survey
             if (string.IsNullOrEmpty(Token))
                 return NotFound();
 
-            // ❌ KALDIRILDI: Token bazlı cookie kontrolü (herkesi engelliyordu!)
-            // Artık sadece email bazlı veritabanı kontrolü yapacağız (OnPost'ta)
-
             Survey = await _context.Surveys
                 .FirstOrDefaultAsync(s => s.PublicToken == Token && !s.IsDeleted
                     && s.Status == SurveyStatus.Active);
@@ -52,7 +54,6 @@ namespace CEA.Web.Pages.Survey
                 return Page();
             }
 
-            // Soruları getir
             Questions = await _context.Questions
                 .Where(q => q.SurveyId == Survey.Id && !q.IsDeleted)
                 .Include(q => q.Options)
@@ -74,21 +75,12 @@ namespace CEA.Web.Pages.Survey
             {
                 ModelState.Remove(key);
             }
+
             Survey = await _context.Surveys
                 .FirstOrDefaultAsync(s => s.PublicToken == Token && !s.IsDeleted);
 
             if (Survey == null)
                 return NotFound();
-
-            // DEBUG: Answers listesini kontrol et
-            System.Diagnostics.Debug.WriteLine($"Gelen cevap sayısı: {Answers?.Count ?? 0}");
-            if (Answers != null)
-            {
-                foreach (var ans in Answers)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Q:{ans.QuestionId} - V:{ans.Value} - R:{ans.RatingValue}");
-                }
-            }
 
             if (!ModelState.IsValid)
             {
@@ -108,7 +100,7 @@ namespace CEA.Web.Pages.Survey
 
             try
             {
-                // ✅ VERİTABANI KONTROLÜ: Aynı email ile daha önce yanıt vermiş mi?
+                // Aynı email kontrolü
                 if (!string.IsNullOrEmpty(Response.CustomerEmail))
                 {
                     var existingResponse = await _context.SurveyResponses
@@ -118,7 +110,6 @@ namespace CEA.Web.Pages.Survey
 
                     if (existingResponse != null)
                     {
-                        // Bu kişi zaten yanıt vermiş
                         SuccessMessage = "Bu e-posta adresi ile anketi zaten tamamladınız. Değerli geri dönüşleriniz için teşekkür ederiz!";
                         ShowForm = false;
                         return Page();
@@ -153,12 +144,8 @@ namespace CEA.Web.Pages.Survey
                 {
                     foreach (var answer in Answers)
                     {
-                        // Boş cevapları atla
                         if (string.IsNullOrWhiteSpace(answer.Value) && !answer.RatingValue.HasValue)
                             continue;
-
-                        // Soru tipini bul (kontrol için)
-                        var question = await _context.Questions.FindAsync(answer.QuestionId);
 
                         var newAnswer = new CEA.Core.Entities.Answer
                         {
@@ -167,15 +154,13 @@ namespace CEA.Web.Pages.Survey
                             CreatedAt = DateTime.Now
                         };
 
-                        // ✅ Rating/NPS için NumericAnswer kullan
                         if (answer.RatingValue.HasValue)
                         {
                             newAnswer.NumericAnswer = answer.RatingValue;
-                            newAnswer.TextAnswer = answer.Value; // Opsiyonel: metin olarak da kaydet
+                            newAnswer.TextAnswer = answer.Value;
                         }
                         else
                         {
-                            // ✅ Metin cevapları için TextAnswer kullan
                             newAnswer.TextAnswer = answer.Value;
                         }
 
@@ -184,7 +169,10 @@ namespace CEA.Web.Pages.Survey
 
                     await _context.SaveChangesAsync();
                 }
-                // Teşekkür sayfasına yönlendir
+
+                // ⭐⭐⭐ BURASI EKLENDİ: Şikayet kontrolü ⭐⭐⭐
+                await _complaintService.CheckAndCreateComplaintAsync(Response.Id);
+
                 return RedirectToPage("/Survey/ThankYou", new { token = Token });
             }
             catch (Exception ex)
@@ -207,8 +195,6 @@ namespace CEA.Web.Pages.Survey
     public class AnswerViewModel
     {
         public int QuestionId { get; set; }
-
-         
         public string? Value { get; set; }
         public int? RatingValue { get; set; }
     }

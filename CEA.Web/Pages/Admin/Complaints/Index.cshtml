@@ -2,240 +2,376 @@
 @model CEA.Web.Pages.Admin.Complaints.IndexModel
 @{
     ViewData["Title"] = "Şikayet Yönetimi";
-    Layout = "_Layout";
 }
 
-<div class="row mb-4">
-    <div class="col-12">
-        <div class="stat-card">
-            <form method="get" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label">Durum</label>
-                    <select asp-for="FilterStatus" class="form-select" onchange="this.form.submit()">
-                        <option value="">Tümü</option>
-                        <option value="New">Yeni</option>
-                        <option value="InProgress">İşlemde</option>
-                        <option value="WaitingForInfo">Bilgi Bekleniyor</option>
-                        <option value="Resolved">Çözüldü</option>
-                        <option value="Closed">Kapatıldı</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Öncelik</label>
-                    <select asp-for="FilterPriority" class="form-select" onchange="this.form.submit()">
-                        <option value="">Tümü</option>
-                        <option value="Critical">Kritik</option>
-                        <option value="High">Yüksek</option>
-                        <option value="Medium">Orta</option>
-                        <option value="Low">Düşük</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Atanan Kişi</label>
-                    <select asp-for="FilterAssignedTo" asp-items="Model.UserList" class="form-select" onchange="this.form.submit()">
-                        <option value="">Tümü</option>
-                    </select>
-                </div>
-                <div class="col-md-3 text-end">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-outline-primary" onclick="refreshData()">
-                            <i class="bi bi-arrow-clockwise"></i> Yenile
-                        </button>
-                        <a href="/Admin/Complaints/Export" class="btn btn-outline-success">
-                            <i class="bi bi-download"></i> Dışa Aktar
-                        </a>
+<div class="container-fluid">
+    <!-- Başlık ve Butonlar -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0 text-gray-800">
+                <i class="fas fa-exclamation-triangle me-2"></i>Şikayet Yönetimi
+            </h1>
+            <p class="text-muted mt-1">Müşteri şikayetlerini yönetin, atayın ve takip edin</p>
+        </div>
+        <form method="post" asp-page-handler="CheckSla" class="d-inline">
+            <button type="submit" class="btn btn-warning">
+                <i class="fas fa-clock me-2"></i>SLA Kontrolü
+            </button>
+        </form>
+    </div>
+
+    <!-- Özet Kartları -->
+    <div class="row mb-4">
+        <!-- Toplam Şikayet -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="stat-card-turkon border-l-4 border-red-500">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Toplam</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.SlaMetrics.TotalComplaints</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
                     </div>
                 </div>
-            </form>
+            </div>
+        </div>
+
+        <!-- Açık Şikayetler -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="stat-card-turkon border-l-4 border-red-500">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Açık</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @(Model.Complaints.Count(c => c.Status != "Closed" && c.Status != "Resolved"))
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLA Aşımı -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="stat-card-turkon border-l-4 border-red-500">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">SLA Aşımı</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">@Model.SlaMetrics.BreachedCount</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLA Uyum Oranı -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="stat-card-turkon border-l-4 border-red-500">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">SLA Uyum</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.SlaMetrics.SlaComplianceRate.ToString("F0")%
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ort. Çözüm Süresi -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="stat-card-turkon border-l-4 border-red-500">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Ort. Çözüm</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @(Model.SlaMetrics.AverageResolutionTimeMinutes > 0 
+                                    ? $"{(Model.SlaMetrics.AverageResolutionTimeMinutes / 60):F1}s" 
+                                    : "-")
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-stopwatch fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kritik Şikayetler -->
+        <div class="col-xl-2 col-md-4 mb-4">
+            <div class="stat-card-turkon border-l-4 border-red-500">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-dark text-uppercase mb-1">Kritik</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                @Model.Complaints.Count(c => c.Priority == "Critical")
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-fire fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-</div>
 
-<div class="stat-card">
-    <div class="table-responsive">
-        <table class="table custom-table table-hover" id="complaintsTable">
-            <thead>
-                <tr>
-                    <th>Ticket #</th>
-                    <th>Müşteri</th>
-                    <th>Kategori</th>
-                    <th>Konu</th>
-                    <th>Öncelik</th>
-                    <th>Durum</th>
-                    <th>Atanan</th>
-                    <th>Tarih</th>
-                    <th>İşlemler</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Complaints)
-                {
-                    <tr class="@(item.IsUnread ? "table-warning" : "")" data-id="@item.Id">
-                        <td>
-                            <a href="/Admin/Complaints/Details?id=@item.Id" class="fw-bold text-decoration-none">
-                                @item.TicketNumber
-                            </a>
-                        </td>
-                        <td>
-                            <div class="fw-semibold">@item.CustomerName</div>
-                            <small class="text-muted">@item.CustomerEmail</small>
-                        </td>
-                        <td><span class="badge bg-secondary">@item.Category</span></td>
-                        <td>
-                            <div class="text-truncate" style="max-width: 200px;" title="@item.Title">
-                                @item.Title
-                            </div>
-                        </td>
-                        <td>
-                            <span class="badge bg-@(item.Priority == "Critical" ? "danger" : item.Priority == "High" ? "warning text-dark" : item.Priority == "Medium" ? "info" : "secondary")">
-                                @item.Priority
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge bg-@(item.Status == "New" ? "danger" : item.Status == "InProgress" ? "primary" : item.Status == "Resolved" ? "success" : "secondary")">
-                                @item.Status
-                            </span>
-                        </td>
-                        <td>
-                            @if (!string.IsNullOrEmpty(item.AssignedToName))
-                            {
-                                <div class="d-flex align-items-center gap-2">
-                                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                                         style="width:28px;height:28px;font-size:12px;">
-                                        @item.AssignedToName?[0]
-                                    </div>
-                                    <small>@item.AssignedToName</small>
-                                </div>
-                            }
-                            else
-                            {
-                                <span class="badge bg-warning text-dark">Atanmadı</span>
-                            }
-                        </td>
-                        <td>
-                            <small>@item.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
-                            @if (item.DueDate.HasValue)
-                            {
-                                <div class="small @(item.DueDate < DateTime.Now ? "text-danger" : "text-muted")">
-                                    <i class="bi bi-clock"></i> @item.DueDate.Value.ToString("dd.MM.yyyy")
-                                </div>
-                            }
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-sm">
-                                <a href="/Admin/Complaints/Details?id=@item.Id" class="btn btn-outline-primary" title="Görüntüle">
-                                    <i class="bi bi-eye"></i>
-                                </a>
-                                @if (item.Status != "Closed" && item.Status != "Resolved")
+    <div class="row">
+        <!-- Sol: Filtreler ve Liste -->
+        <div class="col-lg-9">
+            <!-- Filtreler Card -->
+            <div class="glass-card p-4" style="background: rgba(30, 58, 138, 0.4) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
+                <div class="table-responsive">
+                    <h6 class="m-0 font-weight-bold text-primary">Filtreler</h6>
+                    <a href="./Complaints" class="btn btn-sm btn-outline-secondary">Sıfırla</a>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Durum</label>
+                            <select asp-for="StatusFilter" asp-items="Model.StatusList" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Öncelik</label>
+                            <select asp-for="PriorityFilter" asp-items="Model.PriorityList" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Kategori</label>
+                            <select asp-for="CategoryFilter" asp-items="Model.CategoryList" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Atanan</label>
+                            <select asp-for="AssigneeFilter" asp-items="Model.AssigneeList" class="form-select form-select-sm"></select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">SLA Durumu</label>
+                            <select asp-for="SlaFilter" class="form-select form-select-sm">
+                                <option value="">Tümü</option>
+                                <option value="Breached">🔴 Aşıldı</option>
+                                <option value="AtRisk">🟡 Riskli</option>
+                                <option value="OnTrack">🟢 Normal</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Ara</label>
+                            <input asp-for="SearchTerm" class="form-control form-control-sm" placeholder="Ticket, isim, email..." />
+                        </div>
+                        <div class="col-12 mt-3">
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-filter me-1"></i>Uygula
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Şikayet Listesi -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        Şikayet Listesi (@Model.Complaints.Count)
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="complaintsTable">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="border-0">Ticket</th>
+                                    <th class="border-0">Müşteri</th>
+                                    <th class="border-0">Konu</th>
+                                    <th class="border-0">Kategori</th>
+                                    <th class="border-0">Öncelik</th>
+                                    <th class="border-0">Durum</th>
+                                    <th class="border-0">Atanan</th>
+                                    <th class="border-0">SLA</th>
+                                    <th class="border-0">Süre</th>
+                                    <th class="border-0 text-end">İşlemler</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Complaints)
                                 {
-                                    <button type="button" class="btn btn-outline-success" title="Hızlı Atama"
-                                            onclick="quickAssign(@item.Id)">
-                                        <i class="bi bi-person-check"></i>
-                                    </button>
+                                    <tr class="@(item.IsSlaBreached ? "table-danger" : "")">
+                                        <td>
+                                            <span class="font-monospace fw-bold">@item.TicketNumber</span>
+                                            @if (item.CanAutoAssign)
+                                            {
+                                                <span class="badge bg-secondary ms-1">Yeni</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar-circle bg-primary text-white me-2">
+                                                    @(item.CustomerName?[0] ?? '?')
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">@item.CustomerName</div>
+                                                    <div class="small text-muted">@item.CustomerEmail</div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <a asp-page="./Details" asp-route-id="@item.Id" class="text-decoration-none">
+                                                @item.Title
+                                            </a>
+                                        </td>
+                                        <td><span class="badge bg-light text-dark">@item.Category</span></td>
+                                        <td>
+                                            <span class="badge bg-@item.PriorityBadgeClass">
+                                                @item.Priority
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-@item.StatusBadgeClass">
+                                                @item.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (string.IsNullOrEmpty(item.AssignedToName) || item.AssignedToName == "Atanmamış")
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@item.AssignedToName</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="small @((item.IsSlaBreached ? "text-danger fw-bold" : "text-muted"))">
+                                                @item.SlaStatus
+                                            </span>
+                                            @if (item.DueDate.HasValue)
+                                            {
+                                                <div class="small text-muted">@item.DueDate.Value.ToString("dd.MM HH:mm")</div>
+                                            }
+                                        </td>
+                                        <td class="text-muted small">@item.TimeElapsed</td>
+                                        <td class="text-end">
+                                            <div class="btn-group btn-group-sm">
+                                                <a asp-page="./Details" asp-route-id="@item.Id" class="btn btn-outline-primary" title="Detay">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                @if (item.CanAutoAssign)
+                                                {
+                                                    <form method="post" asp-page-handler="AutoAssign" asp-route-id="@item.Id" class="d-inline">
+                                                        <button type="submit" class="btn btn-outline-success" title="Otomatik Ata">
+                                                            <i class="fas fa-magic"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                                <form method="post" asp-page-handler="Delete" asp-route-id="@item.Id" class="d-inline" 
+                                                      onsubmit="return confirm('@item.TicketNumber silinecek. Emin misiniz?');">
+                                                    <button type="submit" class="btn btn-outline-danger" title="Sil">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ: Workload Paneli -->
+        <div class="col-lg-3">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-users me-2"></i>Takım Workload
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @foreach (var user in Model.UserWorkloads)
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@user.UserName</h6>
+                                    @if (user.IsOverloaded)
+                                    {
+                                        <span class="badge bg-danger">Yüksek</span>
+                                    }
+                                </div>
+                                <p class="mb-1 small text-muted">@user.Department</p>
+                                <div class="d-flex justify-content-between align-items-center mt-2">
+                                    <div class="small">
+                                        <span class="badge bg-primary">@user.OpenCount açık</span>
+                                        @if (user.CriticalCount > 0)
+                                        {
+                                            <span class="badge bg-danger ms-1">@user.CriticalCount kritik</span>
+                                        }
+                                    </div>
+                                    @if (user.AvgResolutionTime.HasValue)
+                                    {
+                                        <small class="text-muted">Ort: @(user.AvgResolutionTime / 60)s</small>
+                                    }
+                                </div>
+                                @if (user.BreachedCount > 0)
+                                {
+                                    <div class="mt-1">
+                                        <span class="badge bg-warning text-dark">@user.BreachedCount SLA aşımı</span>
+                                    </div>
                                 }
                             </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-    
-    <!-- Pagination -->
-    @if (Model.TotalPages > 1)
-    {
-        <nav class="mt-4">
-            <ul class="pagination justify-content-center">
-                @for (int i = 1; i <= Model.TotalPages; i++)
-                {
-                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
-                        <a class="page-link" href="?page=@i&status=@Model.FilterStatus&priority=@Model.FilterPriority">@i</a>
-                    </li>
-                }
-            </ul>
-        </nav>
-    }
-</div>
+                        }
+                    </div>
+                </div>
+            </div>
 
-<!-- Quick Assign Modal -->
-<div class="modal fade" id="assignModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Şikayet Ata</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <input type="hidden" id="assignComplaintId" />
-                <select class="form-select" id="assignUserId">
-                    <option value="">-- Kullanıcı Seçin --</option>
-                    @foreach (var user in Model.AvailableUsers)
+            <!-- Hızlı İstatistikler -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Kategori Dağılımı</h6>
+                </div>
+                <div class="card-body">
+                    @foreach (var cat in Model.SlaMetrics.ByCategory)
                     {
-                        <option value="@user.Id">@user.Name (@user.Department)</option>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <span>@cat.Key</span>
+                                <span class="fw-bold">@cat.Value.Total</span>
+                            </div>
+                            <div class="progress" style="height: 6px;">
+                                @{
+                                    var percentage = Model.SlaMetrics.TotalComplaints > 0 
+                                        ? (int)((double)cat.Value.Total / Model.SlaMetrics.TotalComplaints * 100) 
+                                        : 0;
+                                }
+                                <div class="progress-bar" role="progressbar" style="width: @percentage%"></div>
+                            </div>
+                            @if (cat.Value.Breached > 0)
+                            {
+                                <small class="text-danger">@cat.Value.Breached aşım</small>
+                            }
+                        </div>
                     }
-                </select>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
-                <button type="button" class="btn btn-primary" onclick="confirmAssign()">Ata</button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-@section Scripts {
-    <script>
-        let assignModal;
-
-        document.addEventListener('DOMContentLoaded', function() {
-            assignModal = new bootstrap.Modal(document.getElementById('assignModal'));
-        });
-
-        function quickAssign(complaintId) {
-            document.getElementById('assignComplaintId').value = complaintId;
-            assignModal.show();
-        }
-
-        async function confirmAssign() {
-            const complaintId = document.getElementById('assignComplaintId').value;
-            const userId = document.getElementById('assignUserId').value;
-
-            if (!userId) {
-                alert('Lütfen bir kullanıcı seçin');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/complaints/assign', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ complaintId: parseInt(complaintId), userId: userId })
-                });
-
-                if (response.ok) {
-                    assignModal.hide();
-                    location.reload();
-                } else {
-                    alert('Atama işlemi başarısız oldu');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Bir hata oluştu');
-            }
-        }
-
-        function refreshData() {
-            location.reload();
-        }
-
-        // Real-time updates (SignalR veya polling)
-        setInterval(async () => {
-            const response = await fetch('/api/complaints/new-count');
-            const count = await response.json();
-            if (count > 0) {
-                // Yeni şikayet varsa bildirim göster
-                console.log(`${count} yeni şikayet var`);
-            }
-        }, 30000);
-    </script>
-}

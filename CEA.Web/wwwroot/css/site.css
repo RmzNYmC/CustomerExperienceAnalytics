@@ -146,6 +146,7 @@ input::placeholder, textarea::placeholder {
         white-space: nowrap;
         font-size: 0.95rem;
     }
+
     .glass-table td {
         color: rgba(255, 255, 255, 0.9) !important; /* Beyaz içerik yazısı */
         padding: 1rem;
@@ -207,6 +208,7 @@ input::placeholder, textarea::placeholder {
     color: #fca5a5;
     border: 1px solid rgba(239, 68, 68, 0.3);
 }
+
 .badge-glass-secondary {
     background: rgba(148, 163, 184, 0.2);
     color: #e2e8f0;
@@ -231,6 +233,7 @@ input::placeholder, textarea::placeholder {
         transform: translateY(-2px);
         box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
     }
+
 .btn-group-sm > .btn {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
@@ -307,4 +310,39 @@ input::placeholder, textarea::placeholder {
     background: rgba(0, 0, 0, 0.2);
     padding: 0.25rem;
     border-radius: 0.5rem;
+}
+/* Complaint Index Sayfası Stilleri */
+.avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.border-left-primary {
+    border-left: 4px solid #4e73df !important;
+}
+
+.border-left-success {
+    border-left: 4px solid #1cc88a !important;
+}
+
+.border-left-info {
+    border-left: 4px solid #36b9cc !important;
+}
+
+.border-left-warning {
+    border-left: 4px solid #f6c23e !important;
+}
+
+.border-left-danger {
+    border-left: 4px solid #e74a3b !important;
+}
+
+.border-left-dark {
+    border-left: 4px solid #5a5c69 !important;
 }

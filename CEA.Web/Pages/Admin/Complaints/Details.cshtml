@@ -1,0 +1,313 @@
+﻿@page
+@model CEA.Web.Pages.Admin.Complaints.DetailsModel
+@using CEA.Core.Enum
+@{
+    ViewData["Title"] = $"Şikayet Detayı - {Model.Complaint.TicketNumber}";
+}
+
+<div class="container-fluid">
+    <!-- Başlık -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-0">
+                <i class="fas fa-ticket-alt me-2"></i>@Model.Complaint.TicketNumber
+            </h1>
+            <p class="text-muted">@Model.Complaint.Title</p>
+        </div>
+        <div>
+            <span class="badge bg-@GetPriorityBadgeClass(Model.Complaint.Priority) fs-6 me-2">
+                @Model.Complaint.Priority
+            </span>
+            <span class="badge bg-@GetStatusBadgeClass(Model.Complaint.Status) fs-6">
+                @GetStatusText(Model.Complaint.Status)
+            </span>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Sol Kolon: Ana Bilgiler -->
+        <div class="col-lg-8">
+            <!-- Şikayet Kartı -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Şikayet Bilgileri</h6>
+                    <span class="small text-muted">Oluşturulma: @Model.Complaint.CreatedAt.ToString("dd.MM.yyyy HH:mm")</span>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small">Müşteri</label>
+                            <p class="mb-1 fw-bold">@Model.Complaint.CustomerName</p>
+                            <p class="small text-muted">@Model.Complaint.CustomerEmail</p>
+                            <p class="small text-muted">@Model.Complaint.CustomerPhone</p>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small">Kategori</label>
+                            <p class="mb-1 fw-bold">@Model.Complaint.Category</p>
+                            @if (!string.IsNullOrEmpty(Model.Complaint.SubCategory))
+                            {
+                                <p class="small text-muted">Alt Kategori: @Model.Complaint.SubCategory</p>
+                            }
+                            <p class="small text-muted">Kaynak: @Model.Complaint.Source</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Açıklama</label>
+                        <p class="border p-3 rounded bg-light">@Model.Complaint.Description</p>
+                    </div>
+
+                    @if (Model.Complaint.IsSlaBreached)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>SLA Aşımı!</strong> @Model.Complaint.BreachReason
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Anket Yanıtları -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-poll me-2"></i>Anket Yanıtları
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="small text-muted mb-3">Anket: @Model.Complaint.SurveyTitle</p>
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Soru</th>
+                                <th>Cevap</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var answer in Model.Complaint.Answers)
+                            {
+                                <tr class="@(answer.IsTrigger ? "table-warning" : "")">
+                                    <td>
+                                        @answer.QuestionText
+                                        @if (answer.IsTrigger)
+                                        {
+                                            <span class="badge bg-warning text-dark ms-2">Tetikleyici</span>
+                                        }
+                                    </td>
+                                    <td>@answer.AnswerText</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Notlar -->
+            <div class="card shadow">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Notlar & Aktiviteler</h6>
+                </div>
+                <div class="card-body">
+                    <!-- Yeni Not Ekle -->
+                    <form method="post" asp-page-handler="AddNote" class="mb-4">
+                        <input type="hidden" name="id" value="@Model.Complaint.Id" />
+                        <div class="mb-3">
+                            <textarea name="NewNote" class="form-control" rows="3" placeholder="Yeni not ekleyin..."></textarea>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="form-check">
+                                <input type="checkbox" name="IsInternalNote" value="true" class="form-check-input" checked />
+                                <label class="form-check-label">İç Not (Müşteri göremez)</label>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i>Not Ekle
+                            </button>
+                        </div>
+                    </form>
+
+                    <hr />
+
+                    <!-- Mevcut Notlar -->
+                    <div class="timeline">
+                        @foreach (var note in Model.Notes)
+                        {
+                            <div class="d-flex mb-3">
+                                <div class="flex-shrink-0">
+                                    <div class="avatar-circle bg-secondary text-white" style="width:40px;height:40px;font-size:14px;">
+                                        @(note.CreatedBy[0])
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-1">@note.CreatedBy</h6>
+                                        <small class="text-muted">@note.CreatedAt.ToString("dd.MM.yyyy HH:mm")</small>
+                                    </div>
+                                    <p class="mb-1">@note.Note</p>
+                                    @if (note.IsInternal)
+                                    {
+                                        <span class="badge bg-secondary">İç Not</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info">Müşteri Görünür</span>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ Kolon: İşlemler & SLA -->
+        <div class="col-lg-4">
+            <!-- SLA Durumu -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">SLA Durumu</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted small">Atanan</label>
+                        <p class="fw-bold mb-1">@Model.Complaint.AssignedToName</p>
+                        @if (Model.Complaint.AssignedAt.HasValue)
+                        {
+                            <small class="text-muted">Atanma: @Model.Complaint.AssignedAt.Value.ToString("dd.MM.yyyy HH:mm")</small>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Hedef Tarih (Due Date)</label>
+                        <p class="fw-bold @(Model.Complaint.IsSlaBreached ? "text-danger" : "text-success")">
+                            @(Model.Complaint.DueDate?.ToString("dd.MM.yyyy HH:mm") ?? "Belirlenmemiş")
+                        </p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Yanıt Süresi</label>
+                        <p>@(Model.Complaint.ResponseTime.HasValue ? $"{Model.Complaint.ResponseTime} dk" : "-")</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="text-muted small">Çözüm Süresi</label>
+                        <p>@(Model.Complaint.ResolutionTime.HasValue ? $"{Model.Complaint.ResolutionTime / 60} saat" : "-")</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Atama İşlemleri -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Atama İşlemleri</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="Assign">
+                        <input type="hidden" name="id" value="@Model.Complaint.Id" />
+                        <div class="mb-3">
+                            <label class="form-label">Kullanıcı Seç</label>
+                            <select name="userId" asp-items="Model.AvailableUsers" class="form-select">
+                                <option value="">-- Kullanıcı Seçin --</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">
+                            <i class="fas fa-user-check me-2"></i>Manuel Ata
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Durum Değiştir -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">Durum Değiştir</h6>
+                </div>
+                <div class="card-body">
+                    <form method="post" asp-page-handler="ChangeStatus">
+                        <input type="hidden" name="id" value="@Model.Complaint.Id" />
+                        <div class="mb-3">
+                            <select name="newStatus" asp-items="Model.StatusList" class="form-select"></select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-exchange-alt me-2"></i>Durum Güncelle
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Şikayet Kapat -->
+            @if (Model.Complaint.Status != ComplaintStatus.Closed)
+            {
+                <div class="card shadow border-danger">
+                    <div class="card-header py-3 bg-danger text-white">
+                        <h6 class="m-0 font-weight-bold">Şikayeti Kapat</h6>
+                    </div>
+                    <div class="card-body">
+                        <form method="post" asp-page-handler="Close">
+                            <input type="hidden" name="id" value="@Model.Complaint.Id" />
+                            <div class="mb-3">
+                                <label class="form-label">Çözüm Tipi</label>
+                                <select name="resolutionType" class="form-select">
+                                    <option value="Çözüldü">Çözüldü</option>
+                                    <option value="Reddedildi">Reddedildi</option>
+                                    <option value="Müşteri Yanıtsız">Müşteri Yanıtsız</option>
+                                    <option value="Tekrarlanan">Tekrarlanan</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Çözüm Notları</label>
+                                <textarea name="resolutionNotes" class="form-control" rows="3"></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-danger w-100" onclick="return confirm('Şikayet kapatılacak. Emin misiniz?');">
+                                <i class="fas fa-check-circle me-2"></i>Kapat
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle me-2"></i>Bu şikayet kapatılmıştır.
+                    <hr />
+                    <small>
+                        <strong>Çözüm:</strong> @Model.Complaint.ResolutionType<br />
+                        <strong>Not:</strong> @Model.Complaint.ResolutionNotes
+                    </small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetPriorityBadgeClass(string priority) => priority switch
+    {
+        "Critical" => "danger",
+        "High" => "warning",
+        "Medium" => "info",
+        "Low" => "success",
+        _ => "secondary"
+    };
+
+    string GetStatusBadgeClass(ComplaintStatus status) => status switch
+    {
+        ComplaintStatus.New => "secondary",
+        ComplaintStatus.InProgress => "primary",
+        ComplaintStatus.WaitingForInfo => "warning",
+        ComplaintStatus.Resolved => "success",
+        ComplaintStatus.Closed => "dark",
+        ComplaintStatus.Escalated => "danger",
+        _ => "secondary"
+    };
+
+    string GetStatusText(ComplaintStatus status) => status switch
+    {
+        ComplaintStatus.New => "Yeni",
+        ComplaintStatus.InProgress => "İşlemde",
+        ComplaintStatus.WaitingForInfo => "Bilgi Bekleniyor",
+        ComplaintStatus.Resolved => "Çözüldü",
+        ComplaintStatus.Closed => "Kapatıldı",
+        ComplaintStatus.Escalated => "Üst Yönetim",
+        _ => status.ToString()
+    };
+}

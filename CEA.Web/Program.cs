@@ -1,5 +1,6 @@
 using CEA.Business.Services;
 using CEA.Core.Entities;
+using CEA.Web.BackgroundServices;
 using CEA.Web.Data;
 using DocumentFormat.OpenXml.Spreadsheet;
 using Microsoft.AspNetCore.Identity;
@@ -55,6 +56,13 @@ builder.Services.AddScoped<IPdfReportService, PdfReportService>();
 builder.Services.AddScoped<IAnalyticsService, AnalyticsService>();
 builder.Services.AddScoped<IComplaintAutomationService, ComplaintAutomationService>();
 builder.Services.AddScoped<ISettingsService, SettingsService>();
+// SLA ve Atama Servisleri
+builder.Services.AddScoped<ISlaCalculatorService, SlaCalculatorService>();
+builder.Services.AddScoped<ISmartAssignmentService, SmartAssignmentService>();
+
+
+// Background Service (Her 15 dakikada SLA kontrolü)
+builder.Services.AddHostedService<SlaMonitorBackgroundService>();
 
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
