@@ -1,5 +1,5 @@
 using CEA.Business.Services;
-using CEA.Core.Enums;
+using CEA.Core.Enum;
 using CEA.Core.ViewModels;
 using CEA.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -33,9 +33,10 @@ namespace CEA.Web.Pages.Admin.Analytics
         public string ComparisonLabel { get; set; } = "";
 
         public List<SelectListItem> SurveyList { get; set; } = new();
+        public List<SelectListItem> YearList { get; set; } = new();
+        public List<SelectListItem> MonthList { get; set; } = new();
         public NpsDistribution NpsDistribution { get; set; } = new();
-        public List<string> MonthlyLabels { get; set; } = new();
-        public List<decimal> MonthlyScores { get; set; } = new();
+
 
         public IndexModel(IAnalyticsService analyticsService, ApplicationDbContext context)
         {
@@ -45,8 +46,19 @@ namespace CEA.Web.Pages.Admin.Analytics
 
         public async Task OnGetAsync()
         {
-            // Anket listesini doldur
+            await LoadDropdowns();
+
+            if (SelectedSurveyId.HasValue)
+            {
+                await LoadAnalysis();
+            }
+        }
+
+        private async Task LoadDropdowns()
+        {
+            // Anketler (MEVCUT - Değişmiyor)
             SurveyList = await _context.Surveys
+                .AsNoTracking()
                 .Where(s => !s.IsDeleted)
                 .OrderByDescending(s => s.CreatedAt)
                 .Select(s => new SelectListItem
@@ -56,45 +68,60 @@ namespace CEA.Web.Pages.Admin.Analytics
                 })
                 .ToListAsync();
 
-            if (SelectedSurveyId.HasValue)
+            // Yıllar (2020-2026) ✅ BU BLOK EKLENDİ/EKLENDİ
+            YearList = Enumerable.Range(2020, 7)
+                .Select(y => new SelectListItem
+                {
+                    Value = y.ToString(),
+                    Text = y.ToString(),
+                    Selected = y == SelectedYear
+                })
+                .ToList();
+
+            // Aylar ✅ BU BLOK EKLENDİ/EKLENDİ
+            MonthList = Enumerable.Range(1, 12)
+                .Select(m => new SelectListItem
+                {
+                    Value = m.ToString(),
+                    Text = System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m),
+                    Selected = m == SelectedMonth
+                })
+                .ToList();
+        }
+
+        private async Task LoadAnalysis()
+        {
+            // Ana analiz
+            if (SelectedMonth.HasValue)
             {
-                // Ana analiz
-                if (SelectedMonth.HasValue)
-                {
-                    AnalysisResult = await _analyticsService.GetMonthlyAnalysisAsync(
-                        SelectedSurveyId.Value, SelectedYear, SelectedMonth.Value);
-                }
-                else
-                {
-                    AnalysisResult = await _analyticsService.GetYearlyAnalysisAsync(
-                        SelectedSurveyId.Value, SelectedYear);
-                }
-
-                // Karşılaştırma
-                if (ComparisonType != "None")
-                {
-                    if (ComparisonType == "PreviousYear")
-                    {
-                        ComparisonResult = await _analyticsService.GetYearlyAnalysisAsync(
-                            SelectedSurveyId.Value, SelectedYear - 1);
-                        ComparisonLabel = "vs Önceki Yıl";
-                    }
-                    else if (ComparisonType == "PreviousMonth" && SelectedMonth.HasValue)
-                    {
-                        var prevMonth = SelectedMonth.Value == 1 ? 12 : SelectedMonth.Value - 1;
-                        var prevYear = SelectedMonth.Value == 1 ? SelectedYear - 1 : SelectedYear;
-                        ComparisonResult = await _analyticsService.GetMonthlyAnalysisAsync(
-                            SelectedSurveyId.Value, prevYear, prevMonth);
-                        ComparisonLabel = "vs Önceki Ay";
-                    }
-                }
-
-                // NPS Dağılımı hesapla
-                await CalculateNpsDistribution();
-
-                // Aylık trend verisi
-                await LoadMonthlyTrend();
+                AnalysisResult = await _analyticsService.GetMonthlyAnalysisAsync(
+                    SelectedSurveyId.Value, SelectedYear, SelectedMonth.Value);
             }
+            else
+            {
+                AnalysisResult = await _analyticsService.GetYearlyAnalysisAsync(
+                    SelectedSurveyId.Value, SelectedYear);
+            }
+
+            // Karşılaştırma
+            if (ComparisonType == "PreviousYear")
+            {
+                ComparisonResult = await _analyticsService.GetYearlyAnalysisAsync(
+                    SelectedSurveyId.Value, SelectedYear - 1);
+                ComparisonLabel = $"{SelectedYear - 1} Yılı ile Karşılaştırma";
+            }
+            else if (ComparisonType == "PreviousMonth" && SelectedMonth.HasValue)
+            {
+                var prevMonth = SelectedMonth.Value == 1 ? 12 : SelectedMonth.Value - 1;
+                var prevYear = SelectedMonth.Value == 1 ? SelectedYear - 1 : SelectedYear;
+
+                ComparisonResult = await _analyticsService.GetMonthlyAnalysisAsync(
+                    SelectedSurveyId.Value, prevYear, prevMonth);
+                ComparisonLabel = $"{prevMonth:00}/{prevYear} ile Karşılaştırma";
+            }
+
+            // NPS Dağılımı
+            await CalculateNpsDistribution();
         }
 
         private async Task CalculateNpsDistribution()
@@ -102,6 +129,7 @@ namespace CEA.Web.Pages.Admin.Analytics
             if (!SelectedSurveyId.HasValue) return;
 
             var query = _context.Answers
+                .AsNoTracking()
                 .Include(a => a.Question)
                 .Where(a => a.Question.QuestionType == QuestionType.NpsScore
                     && a.Response.SurveyId == SelectedSurveyId.Value
@@ -112,38 +140,24 @@ namespace CEA.Web.Pages.Admin.Analytics
                 query = query.Where(a => a.Response.ResponseMonth == SelectedMonth.Value);
 
             var scores = await query
-    .Where(a => a.NumericAnswer.HasValue)
-    .Select(a => a.NumericAnswer!.Value) // ! eklendi
-    .ToListAsync();
+                .Where(a => a.NumericAnswer.HasValue)
+                .Select(a => a.NumericAnswer!.Value)
+                .ToListAsync();
 
             NpsDistribution = new NpsDistribution
             {
                 Promoters = scores.Count(x => x >= 9),
                 Passives = scores.Count(x => x >= 7 && x <= 8),
-                Detractors = scores.Count(x => x <= 6)
+                Detractors = scores.Count(x => x <= 6),
+                Total = scores.Count  // ✅ BUNU EKLEYİN
             };
-        }
-
-        private async Task LoadMonthlyTrend()
-        {
-            MonthlyLabels = new List<string>();
-            MonthlyScores = new List<decimal>();
-
-            for (int m = 1; m <= 12; m++)
-            {
-                MonthlyLabels.Add(System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m));
-
-                var monthlyData = await _analyticsService.GetMonthlyAnalysisAsync(
-                    SelectedSurveyId!.Value, SelectedYear, m);
-                MonthlyScores.Add(monthlyData.AverageSatisfaction);
-            }
         }
 
         public async Task<IActionResult> OnGetExportPdfAsync(int surveyId, int year, int? month)
         {
             var pdfBytes = await _analyticsService.ExportToPdfAsync(surveyId, year, month);
-            return File(pdfBytes, "application/pdf",
-                $"Analiz_Raporu_{year}{(month.HasValue ? $"_{month:D2}" : "")}.pdf");
+            var fileName = $"Analiz_Raporu_{year}{(month.HasValue ? $"_{month:D2}" : "")}.pdf";
+            return File(pdfBytes, "application/pdf", fileName);
         }
     }
 
@@ -152,5 +166,10 @@ namespace CEA.Web.Pages.Admin.Analytics
         public int Promoters { get; set; }
         public int Passives { get; set; }
         public int Detractors { get; set; }
+        public int Total { get; set; }  // ✅ EKLENDİ
+
+        public double PromoterPercentage => Total > 0 ? (double)Promoters / Total * 100 : 0;      // ✅ EKLENDİ
+        public double PassivePercentage => Total > 0 ? (double)Passives / Total * 100 : 0;       // ✅ EKLENDİ
+        public double DetractorPercentage => Total > 0 ? (double)Detractors / Total * 100 : 0;   // ✅ EKLENDİ
     }
 }

@@ -1,6 +1,5 @@
 ﻿using CEA.Core.Entities;
 using CEA.Core.Enum;
-using CEA.Core.Enums;
 using CEA.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -71,12 +70,18 @@ namespace CEA.Business.Services
                 if (complaint.DueDate.HasValue && complaint.ResolvedAt > complaint.DueDate)
                 {
                     complaint.IsSlaBreached = true;
-                    complaint.BreachReason = $"Çözüm süresi aşıldı. Hedef: {complaint.DueDate:dd.MM.yyyy HH:mm}";
+                    complaint.BreachReason = $"Çözüm süresi aşıldı. Hedef: {complaint.DueDate:dd.MM.yyyy HH:mm}, Gerçekleşen: {complaint.ResolvedAt:dd.MM.yyyy HH:mm}";
                 }
+                else
+                {
+                    complaint.IsSlaBreached = false;
+                    complaint.BreachReason = null;
+                }
+
             }
 
             // Aktif şikayetlerde SLA aşımı kontrolü
-            if (!complaint.ResolvedAt.HasValue && complaint.DueDate.HasValue && now > complaint.DueDate)
+            if (!complaint.ResolvedAt.HasValue && complaint.DueDate.HasValue && DateTime.Now > complaint.DueDate)
             {
                 if (!complaint.IsSlaBreached)
                 {
@@ -85,7 +90,7 @@ namespace CEA.Business.Services
                     _logger.LogWarning("SLA aşımı: Ticket {TicketNumber}", complaint.TicketNumber);
                 }
             }
-
+            // 4. Değişiklikleri kaydet (ÖNEMLİ!)
             await _context.SaveChangesAsync();
         }
 

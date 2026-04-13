@@ -346,3 +346,344 @@ input::placeholder, textarea::placeholder {
 .border-left-dark {
     border-left: 4px solid #5a5c69 !important;
 }
+/* ============================================
+   MODERN ANKET TASARIMI
+   ============================================ */
+
+/* Arka Plan - Canlı Gradient */
+.survey-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 40px 20px;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+/* Ana Konteyner */
+.survey-container {
+    max-width: 800px;
+    margin: 0 auto;
+    animation: fadeInUp 0.6s ease;
+}
+
+/* Başlık Kartı */
+.survey-header {
+    text-align: center;
+    color: white;
+    margin-bottom: 30px;
+    padding: 20px;
+}
+
+.survey-title {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.survey-description {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    line-height: 1.6;
+}
+
+/* İlerleme Çubuğu */
+.progress-container {
+    background: rgba(255,255,255,0.2);
+    border-radius: 50px;
+    height: 8px;
+    margin-bottom: 30px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #f093fb 0%, #f5576c 100%);
+    border-radius: 50px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 10px rgba(245, 87, 108, 0.5);
+}
+
+/* Glassmorphism Kartlar */
+.survey-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 25px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+    .survey-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+    }
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+    .card-title i {
+        color: #667eea;
+        font-size: 1.3rem;
+    }
+
+/* Form Elemanları */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #4a5568;
+    margin-bottom: 8px;
+    display: block;
+    font-size: 0.95rem;
+}
+
+    .form-label .required {
+        color: #e53e3e;
+        margin-left: 3px;
+    }
+
+.form-control-modern {
+    width: 100%;
+    padding: 14px 18px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: #fff;
+}
+
+    .form-control-modern:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        outline: none;
+    }
+
+    .form-control-modern::placeholder {
+        color: #a0aec0;
+    }
+
+/* NPS/Rating Scale - Modern */
+.rating-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    padding: 15px;
+}
+
+.rating-item {
+    position: relative;
+}
+
+.rating-input {
+    position: absolute;
+    opacity: 0;
+}
+
+.rating-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #edf2f7;
+    color: #4a5568;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 3px solid transparent;
+}
+
+    .rating-label:hover {
+        background: #e2e8f0;
+        transform: scale(1.1);
+    }
+
+.rating-input:checked + .rating-label {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: #fff;
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.5);
+    transform: scale(1.15);
+}
+
+/* Düşük Puan Uyarısı */
+.low-rating-warning {
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+    border: 2px solid #fc8181;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 15px;
+    display: none;
+    animation: shake 0.5s;
+}
+
+    .low-rating-warning.show {
+        display: block;
+    }
+
+    .low-rating-warning i {
+        color: #e53e3e;
+        margin-right: 8px;
+    }
+
+/* Checkbox Modern */
+.checkbox-modern {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    margin-bottom: 10px;
+    background: #f7fafc;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+    .checkbox-modern:hover {
+        background: #edf2f7;
+        border-color: #cbd5e0;
+    }
+
+    .checkbox-modern input[type="checkbox"] {
+        width: 22px;
+        height: 22px;
+        margin-right: 12px;
+        accent-color: #667eea;
+        cursor: pointer;
+    }
+
+    .checkbox-modern.checked {
+        background: linear-gradient(135deg, #ebf8ff 0%, #bee3f8 100%);
+        border-color: #667eea;
+    }
+
+/* Textarea Modern */
+.textarea-modern {
+    width: 100%;
+    min-height: 120px;
+    padding: 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    resize: vertical;
+    transition: all 0.3s;
+}
+
+    .textarea-modern:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+        outline: none;
+    }
+
+/* Gönder Butonu */
+.submit-btn {
+    width: 100%;
+    padding: 18px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+}
+
+    .submit-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.5);
+    }
+
+    .submit-btn:active {
+        transform: translateY(-1px);
+    }
+
+    .submit-btn::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient( to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100% );
+        transform: rotate(30deg);
+        transition: all 0.6s;
+    }
+
+    .submit-btn:hover::after {
+        left: 100%;
+    }
+
+/* Animasyonlar */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-5px);
+    }
+
+    75% {
+        transform: translateX(5px);
+    }
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .survey-page {
+        padding: 20px 15px;
+    }
+
+    .survey-title {
+        font-size: 1.5rem;
+    }
+
+    .survey-card {
+        padding: 20px;
+    }
+
+    .rating-label {
+        width: 40px;
+        height: 40px;
+        font-size: 0.9rem;
+    }
+
+    .submit-btn {
+        font-size: 1rem;
+        padding: 15px;
+    }
+}

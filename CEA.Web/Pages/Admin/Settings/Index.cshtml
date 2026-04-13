@@ -26,6 +26,30 @@
         </div>
     }
 
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["WarningMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-times-circle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
     <!-- SMTP Ayarları -->
     <div class="glass-card mb-4">
         <div class="card-header bg-transparent border-bottom border-white/10 py-3">
@@ -114,6 +138,55 @@
                                                         </div>
                                                     </div>
                                                 </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Test Veri Temizleme Bölümü -->
+                                    <div class="row mt-4">
+                                        <div class="col-md-6">
+                                            <div class="card border-danger">
+                                                <div class="card-header bg-danger text-white">
+                                                    <h5 class="mb-0">
+                                                        <i class="fas fa-trash-alt"></i> Test Verilerini Temizle
+                                                    </h5>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="alert alert-warning">
+                                                        <i class="fas fa-exclamation-triangle"></i>
+                                                        <strong>Dikkat!</strong> Bu işlem son eklenen anket yanıtlarını ve bağlı şikayetleri kalıcı olarak siler. Geri alınamaz!
+                                                    </div>
+
+                                                    <form method="post" asp-page-handler="CleanupTestData"
+                                                          onsubmit="return confirm('⚠️ Emin misiniz? Bu işlem geri alınamaz!');">
+                    
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Kaç adet son yanıt silinecek?</label>
+                                                            <select name="deleteCount" class="form-select">
+                                                                <option value="5">Son 5 yanıt</option>
+                                                                <option value="10" selected>Son 10 yanıt</option>
+                                                                <option value="20">Son 20 yanıt</option>
+                                                                <option value="50">Son 50 yanıt (Tüm testler)</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="mb-3">
+                                                            <label>Hangi Anket? (Boş bırak = Tümü)</label>
+                                                            <select name="surveyId" class="form-select">
+                                                                <option value="">Tüm Anketler</option>
+                                                                @foreach (var survey in Model.Surveys)
+                                                                {
+                                                                    <option value="@survey.Id">@survey.Title</option>
+                                                                }
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="d-grid">
+                                                            <button type="submit" class="btn btn-danger">
+                                                                <i class="fas fa-broom"></i> Test Verilerini Temizle
+                                                            </button>
+                                                        </div>
+                                                    </form>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

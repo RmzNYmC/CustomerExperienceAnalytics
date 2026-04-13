@@ -1,7 +1,6 @@
 using CEA.Business.Services;
 using CEA.Core.Entities;
 using CEA.Core.Enum;
-using CEA.Core.Enums;
 using CEA.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -177,6 +176,18 @@ namespace CEA.Web.Pages.Admin.Complaints
             if (complaint == null) return NotFound();
 
             var oldStatus = complaint.Status;
+            if ((newStatus == ComplaintStatus.Resolved || newStatus == ComplaintStatus.Closed)
+        && !complaint.ResolvedAt.HasValue)
+            {
+                complaint.ResolvedAt = DateTime.Now;
+            }
+
+            // Eğer Closed yapılıyorsa ve ClosedAt boşsa set et
+            if (newStatus == ComplaintStatus.Closed && !complaint.ClosedAt.HasValue)
+            {
+                complaint.ClosedAt = DateTime.Now;
+            }
+
             complaint.Status = newStatus;
 
             // SLA metriklerini güncelle

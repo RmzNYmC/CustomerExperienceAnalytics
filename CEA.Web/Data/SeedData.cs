@@ -31,7 +31,7 @@ namespace CEA.Web.Data
             }
 
             // Admin kullanıcı oluştur (eğer yoksa)
-            var adminEmail = "admin@turkon.com";
+            var adminEmail = "bt@turkonlogistics.com";
             if (await userManager.FindByEmailAsync(adminEmail) == null)
             {
                 var adminUser = new ApplicationUser

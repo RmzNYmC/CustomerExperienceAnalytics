@@ -8,10 +8,10 @@
     <!-- Başlık ve Butonlar -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h1 class="h3 mb-0 text-gray-800">
-                <i class="fas fa-exclamation-triangle me-2"></i>Şikayet Yönetimi
-            </h1>
-            <p class="text-muted mt-1">Müşteri şikayetlerini yönetin, atayın ve takip edin</p>
+            <h4 class="text-white fw-bold">
+                <i class="fas fa-clipboard-list me-2 text-blue-300"></i>Şikayet Yönetimi
+            </h4>
+            <p class="text-muted-gray mt-1">Müşteri şikayetlerini yönetin, atayın ve takip edin</p>
         </div>
         <form method="post" asp-page-handler="CheckSla" class="d-inline">
             <button type="submit" class="btn btn-warning">
@@ -137,64 +137,102 @@
 
     <div class="row">
         <!-- Sol: Filtreler ve Liste -->
-        <div class="col-lg-9">
+        <div class="col-lg-9 ">
             <!-- Filtreler Card -->
-            <div class="glass-card p-4" style="background: rgba(30, 58, 138, 0.4) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
-                <div class="table-responsive">
-                    <h6 class="m-0 font-weight-bold text-primary">Filtreler</h6>
-                    <a href="./Complaints" class="btn btn-sm btn-outline-secondary">Sıfırla</a>
+            <div class="glass-card p-3 mb-4 " style="background: rgba(30, 58, 138, 0.4) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="m-0 font-weight-bold text-white">
+                        <i class="fas fa-filter me-2"></i>Filtreler
+                    </h6>
+                    <a href="./" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-undo me-1"></i>Sıfırla
+                    </a>
                 </div>
-                <div class="card-body">
-                    <form method="get" class="row g-3">
-                        <div class="col-md-2">
-                            <label class="form-label small text-muted">Durum</label>
-                            <select asp-for="StatusFilter" asp-items="Model.StatusList" class="form-select form-select-sm"></select>
+    
+                <form method="get">
+                    <div class="overflow-x-auto">
+                        <table class="glass-table w-full text-sm" style="min-width: 800px;">
+                            <thead>
+                                <tr class="text-white-50" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">
+                                    <th style="width: 16%; font-weight: 600;">Durum</th>
+                                    <th style="width: 16%; font-weight: 600;">Öncelik</th>
+                                    <th style="width: 16%; font-weight: 600;">Kategori</th>
+                                    <th style="width: 16%; font-weight: 600;">Atanan</th>
+                                    <th style="width: 16%; font-weight: 600;">SLA Durumu</th>
+                                    <th style="width: 20%; font-weight: 600;">Arama</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="p-1">
+                                        <select asp-for="StatusFilter" asp-items="Model.StatusList"
+                                                class="form-select form-select-sm border-0"
+                                                style="background: rgba(255,255,255,0.15); color: black; height: 35px;">
+                                        </select>
+                                    </td>
+                                    <td class="p-1">
+                                        <select asp-for="PriorityFilter" asp-items="Model.PriorityList"
+                                                class="form-select form-select-sm border-0"
+                                                style="background: rgba(255,255,255,0.15); color: black; height: 35px;">
+                                        </select>
+                                    </td>
+                                    <td class="p-1">
+                                        <select asp-for="CategoryFilter" asp-items="Model.CategoryList"
+                                                class="form-select form-select-sm border-0"
+                                                style="background: rgba(255,255,255,0.15); color: black; height: 35px;">
+                                        </select>
+                                    </td>
+                                    <td class="p-1">
+                                        <select asp-for="AssigneeFilter" asp-items="Model.AssigneeList"
+                                                class="form-select form-select-sm border-0"
+                                                style="background: rgba(255,255,255,0.15); color: black; height: 35px;">
+                                        </select>
+                                    </td>
+                                    <td class="p-1">
+                                        <select asp-for="SlaFilter"
+                                                class="form-select form-select-sm border-0"
+                                                style="background: rgba(255,255,255,0.15); color: black; height: 35px;">
+                                            <option value="">Tümü</option>
+                                            <option value="Breached">🔴 Aşıldı</option>
+                                            <option value="AtRisk">🟡 Riskli</option>
+                                            <option value="OnTrack">🟢 Normal</option>
+                                        </select>
+                                    </td>
+                                    <td class="p-1">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text border-0" style="background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.7);">
+                                                <i class="fas fa-search"></i>
+                                            </span>
+                                            <input asp-for="SearchTerm"
+                                                   class="form-control border-0"
+                                                   placeholder="Ticket, isim, email..."
+                                                   style="background: rgba(255,255,255,0.15); color: white; height: 35px;">
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
-                        <div class="col-md-2">
-                            <label class="form-label small text-muted">Öncelik</label>
-                            <select asp-for="PriorityFilter" asp-items="Model.PriorityList" class="form-select form-select-sm"></select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small text-muted">Kategori</label>
-                            <select asp-for="CategoryFilter" asp-items="Model.CategoryList" class="form-select form-select-sm"></select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small text-muted">Atanan</label>
-                            <select asp-for="AssigneeFilter" asp-items="Model.AssigneeList" class="form-select form-select-sm"></select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small text-muted">SLA Durumu</label>
-                            <select asp-for="SlaFilter" class="form-select form-select-sm">
-                                <option value="">Tümü</option>
-                                <option value="Breached">🔴 Aşıldı</option>
-                                <option value="AtRisk">🟡 Riskli</option>
-                                <option value="OnTrack">🟢 Normal</option>
-                            </select>
-                        </div>
-                        <div class="col-md-2">
-                            <label class="form-label small text-muted">Ara</label>
-                            <input asp-for="SearchTerm" class="form-control form-control-sm" placeholder="Ticket, isim, email..." />
-                        </div>
-                        <div class="col-12 mt-3">
-                            <button type="submit" class="btn btn-primary btn-sm">
-                                <i class="fas fa-filter me-1"></i>Uygula
+        
+                        <div class="text-end mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.1);">
+                            <button type="submit" class="btn btn-light btn-sm px-4">
+                                <i class="fas fa-filter me-2"></i>Filtrele
                             </button>
                         </div>
                     </form>
                 </div>
-            </div>
 
             <!-- Şikayet Listesi -->
-            <div class="card shadow">
-                <div class="card-header py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
+                <div class="glass-card p-3 mb-4" style="background: rgba(30, 58, 138, 0.4) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="m-0 font-weight-bold text-white">
                         Şikayet Listesi (@Model.Complaints.Count)
                     </h6>
                 </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle mb-0" id="complaintsTable">
-                            <thead class="bg-light">
+                    <div class="glass-card">
+                        <div class="overflow-x-auto">
+                            <table class="glass-table w-full text-sm" id="complaintsTable">
+                            <thead>
                                 <tr>
                                     <th class="border-0">Ticket</th>
                                     <th class="border-0">Müşteri</th>
@@ -226,7 +264,7 @@
                                                 </div>
                                                 <div>
                                                     <div class="fw-bold">@item.CustomerName</div>
-                                                    <div class="small text-muted">@item.CustomerEmail</div>
+                                                    <div class="small text-muted-white">@item.CustomerEmail</div>
                                                 </div>
                                             </div>
                                         </td>
@@ -257,12 +295,12 @@
                                             }
                                         </td>
                                         <td>
-                                            <span class="small @((item.IsSlaBreached ? "text-danger fw-bold" : "text-muted"))">
+                                            <span class="small @((item.IsSlaBreached ? "text-danger fw-bold" : "text-muted-white"))">
                                                 @item.SlaStatus
                                             </span>
                                             @if (item.DueDate.HasValue)
                                             {
-                                                <div class="small text-muted">@item.DueDate.Value.ToString("dd.MM HH:mm")</div>
+                                                <div class="small text-muted-white">@item.DueDate.Value.ToString("dd.MM HH:mm")</div>
                                             }
                                         </td>
                                         <td class="text-muted small">@item.TimeElapsed</td>

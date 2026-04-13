@@ -1,4 +1,4 @@
-﻿using CEA.Core.Enums;
+﻿using CEA.Core.Enum;
 using System;
 using System.Collections.Generic;
 using System.Linq;

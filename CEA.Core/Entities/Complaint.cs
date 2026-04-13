@@ -1,5 +1,4 @@
 ﻿using CEA.Core.Enum;
-using CEA.Core.Enums;
 
 namespace CEA.Core.Entities
 {

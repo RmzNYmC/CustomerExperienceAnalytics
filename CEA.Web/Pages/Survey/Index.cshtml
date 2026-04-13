@@ -1,170 +1,243 @@
 ﻿@page
 @model CEA.Web.Pages.Survey.IndexModel
-@using CEA.Core.Enums
+@using CEA.Core.Enum
 @{
+    Layout = "_PublicLayout";
     ViewData["Title"] = Model.Survey?.Title ?? "Anket";
-    Layout = "_PublicLayout"; // ✅ Admin layout yerine public layout kullan
 }
 
-<div class="container mt-5 mb-5">
-    @if (!Model.ShowForm && !string.IsNullOrEmpty(Model.SuccessMessage))
-    {
-        <div class="row justify-content-center">
-            <div class="col-md-8 text-center">
-                <div class="card bg-success/20 border-success">
-                    <div class="card-body py-5">
-                        <i class="fas fa-check-circle fa-5x text-success mb-4"></i>
-                        <h2 class="text-white">@Model.SuccessMessage</h2>
-                        <p class="text-white/70 mt-3">Görüşleriniz bizim için çok değerlidir.</p>
-                        <a href="/" class="btn btn-glass-primary mt-3">Ana Sayfaya Dön</a>
+<div class="survey-page">
+    <div class="survey-container">
+        
+        <!-- İlerleme Çubuğu -->
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+
+        <!-- Başlık -->
+        <div class="survey-header">
+            <h1 class="survey-title">@Model.Survey?.Title</h1>
+            <p class="survey-description">@Model.Survey?.Description</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>@Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i>@Model.SuccessMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <form method="post" id="surveyForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Token" />
+
+            <!-- İletişim Bilgileri Kartı -->
+            <div class="survey-card">
+                <h3 class="card-title">
+                    <i class="fas fa-user-circle"></i>
+                    İletişim Bilgileri
+                </h3>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            Ad Soyad <span class="required">*</span>
+                        </label>
+                        <input asp-for="SurveyResponse.CustomerName"
+                               class="form-control-modern"
+                               placeholder="Adınız ve soyadınız"
+                               required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">
+                            E-posta <span class="required">*</span>
+                        </label>
+                        <input asp-for="SurveyResponse.CustomerEmail"
+                               type="email"
+                               class="form-control-modern"
+                               placeholder="ornek@email.com"
+                               required />
+                        <small class="text-muted d-block mt-1">
+                            <i class="fas fa-info-circle"></i>
+                            Aynı e-posta ile tekrar yanıt veremezsiniz.
+                        </small>
                     </div>
                 </div>
             </div>
-        </div>
-    }
-    else if (Model.Survey == null)
-    {
-        <div class="alert alert-danger text-center">
-            <h4>Anket bulunamadı veya süresi dolmuş.</h4>
-        </div>
-    }
-    else
-    {
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="glass-card">
-                    <div class="card-header bg-transparent border-bottom border-white/10 py-4">
-                        <h3 class="mb-0 text-white">@Model.Survey.Title</h3>
-                        @if (!string.IsNullOrEmpty(Model.Survey.Description))
+
+            <!-- Anket Soruları -->
+            <div class="survey-card">
+                <h3 class="card-title">
+                    <i class="fas fa-clipboard-list"></i>
+                    Anket Soruları
+                </h3>
+
+                @{
+                    int answerIndex = 0;
+                }
+
+                @foreach (var question in Model.Questions)
+                {
+                    <div class="question-item mb-4" data-question-id="@question.Id">
+                        <label class="form-label">
+                            @question.DisplayOrder. @question.Text
+                            @if (question.IsRequired)
+                            {
+                                <span class="required">*</span>
+                            }
+                        </label>
+
+                        <!-- QuestionId için hidden field (HER SORU TİPİ İÇİN) -->
+                        <input type="hidden" name="Answers[@answerIndex].QuestionId" value="@question.Id" />
+
+                        @switch (question.QuestionType)
                         {
-                            <p class="mb-0 mt-2 text-white/70">@Model.Survey.Description</p>
+                            case QuestionType.NpsScore:
+                            case QuestionType.RatingScale:
+                                <div class="rating-container">
+                                    @for (int i = 0; i <= 10; i++)
+                                    {
+                                        <div class="rating-item">
+                                            <input type="radio"
+                                                   name="Answers[@answerIndex].RatingValue"
+                                                   value="@i"
+                                                   id="rating_@(question.Id)_@i"
+                                                   class="rating-input"
+                                                   data-trigger="@question.TriggerComplaintOnLowRating"
+                                                   data-threshold="@question.ComplaintThreshold"
+                                                   onchange="checkRating(this, @question.Id)"
+                                                   required="@question.IsRequired" />
+                                            <label for="rating_@(question.Id)_@i" class="rating-label">
+                                                @i
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                                
+                                <!-- Düşük Puan Uyarısı -->
+                                @if (question.TriggerComplaintOnLowRating)
+                                {
+                                    <div class="low-rating-warning" id="warning_@question.Id">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <strong>Düşük memnuniyet algılandı.</strong><br>
+                                        Görüşleriniz şikayet olarak kaydedilecektir.
+                                    </div>
+                                }
+                                break;
+
+                            case QuestionType.MultipleChoice:
+                                <div class="options-container">
+                                    @{
+                                        int optionIndex = 0;
+                                    }
+                                    @foreach (var option in question.Options)
+                                    {
+                                        <input type="hidden" name="Answers[@answerIndex].QuestionId" value="@question.Id" />
+                                        <label class="checkbox-modern">
+                                            <input type="checkbox"
+                                                   name="Answers[@answerIndex].Value"
+                                                   value="@option.Text"
+                                                   id="option_@(question.Id)_@optionIndex"
+                                                   onchange="updateProgress()" />
+                                            <span>@option.Text</span>
+                                        </label>
+                                        answerIndex++;
+                                        optionIndex++;
+                                    }
+                                </div>
+                                if (!question.Options.Any())
+                                {
+                                    <input type="hidden" name="Answers[@answerIndex].QuestionId" value="@question.Id" />
+                                    answerIndex++;
+                                }
+                                break;
+
+                            case QuestionType.TextOpen:
+                                <textarea name="Answers[@answerIndex].Value"
+                                          class="textarea-modern"
+                                          placeholder="Görüş ve önerilerinizi yazın..."
+                                          oninput="updateProgress()"
+                                          rows="4"></textarea>
+                                break;
                         }
                     </div>
                     
-                    <div class="card-body p-4">
-                        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                        {
-                            <div class="alert alert-danger">@Model.ErrorMessage</div>
-                        }
+                    answerIndex++;
+                }
+            </div>
 
-                        <form method="post">
-                            <input type="hidden" asp-for="Token" />
-                            
-                            <div class="row g-3 mb-4 p-3 bg-white/5 rounded border border-white/10">
-                                <h5 class="mb-3 text-white"><i class="fas fa-user me-2"></i>İletişim Bilgileri</h5>
-                                <div class="col-md-6">
-                                    <label class="form-label text-white">Ad Soyad <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control bg-white/10 border-white/20 text-white"
-                                           asp-for="Response.CustomerName" required>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label text-white">E-posta <span class="text-danger">*</span></label>
-                                        <input type="email" class="form-control bg-white/10 border-white/20 text-white"
-                                               asp-for="Response.CustomerEmail" required>
-                                            <small class="text-white/50">Aynı e-posta ile tekrar yanıt veremezsiniz.</small>
-                                        </div>
-                                    </div>
+            <!-- Gönder Butonu -->
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-paper-plane"></i>
+                Anketi Gönder
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </form>
+    </div>
+</div>
 
-                                    <hr class="border-white/10 my-4">
-
-                                    <h5 class="mb-4 text-white"><i class="fas fa-clipboard-list me-2"></i>Anket Soruları</h5>
-                            
-                                    @for (int i = 0; i < Model.Questions.Count; i++)
-                                    {
-                                        var question = Model.Questions[i];
-                                        <div class="mb-4 p-3 border border-white/10 rounded bg-white/5">
-                                            <h6 class="fw-bold mb-3 text-white">
-                                                @(i + 1). @question.Text
-                                                @if (question.IsRequired)
-                                                {
-                                                    <span class="text-danger">*</span>
-                                                }
-                                            </h6>
-
-                                            @if (question.QuestionType == QuestionType.TextOpen)
-                                            {
-                                                <textarea class="form-control bg-white/10 border-white/20 text-white"
-                                                          name="Answers[@i].Value" rows="3"></textarea>
-                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
-                                            }
-                                            else if (question.QuestionType == QuestionType.RatingScale)
-                                            {
-                                                <div class="d-flex gap-2 justify-content-center">
-                                                    @for (int r = question.MinRating ?? 1; r <= (question.MaxRating ?? 5); r++)
-                                                    {
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio"
-                                                                   name="Answers[@i].RatingValue"
-                                                                   value="@r"
-                                                                   id="q@(question.Id)_r@(r)">
-                                                            <label class="form-check-label text-white" for="q@(question.Id)_r@(r)">@r</label>
-                                                        </div>
-                                                    }
-                                                </div>
-                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
-                                                <input type="hidden" name="Answers[@i].Value" value="" />
-                                            }
-                                            else if (question.QuestionType == QuestionType.NpsScore)
-                                            {
-                                                <div class="d-flex gap-1 justify-content-center flex-wrap">
-                                                    @for (int r = 0; r <= 10; r++)
-                                                    {
-                                                        <div class="form-check form-check-inline">
-                                                            <input class="form-check-input" type="radio"
-                                                                   name="Answers[@i].RatingValue"
-                                                                   value="@r"
-                                                                   id="q@(question.Id)_nps@(r)">
-                                                            <label class="form-check-label text-white" for="q@(question.Id)_nps@(r)">@r</label>
-                                                        </div>
-                                                    }
-                                                </div>
-                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
-                                                <input type="hidden" name="Answers[@i].Value" value="" />
-                                            }
-                                            else if (question.QuestionType == QuestionType.SingleChoice)
-                                            {
-                                                @foreach (var option in question.Options.Where(o => !o.IsDeleted).OrderBy(o => o.DisplayOrder))
-                                                {
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="radio"
-                                                               name="Answers[@i].Value"
-                                                               value="@option.Text"
-                                                               id="opt_@option.Id">
-                                                        <label class="form-check-label text-white" for="opt_@option.Id">@option.Text</label>
-                                                    </div>
-                                                }
-                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
-                                            }
-                                            else if (question.QuestionType == QuestionType.MultipleChoice)
-                                            {
-                                                @foreach (var option in question.Options.Where(o => !o.IsDeleted).OrderBy(o => o.DisplayOrder))
-                                                {
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox"
-                                                               name="Answers[@i].Value"
-                                                               value="@option.Text"
-                                                               id="opt_@option.Id">
-                                                        <label class="form-check-label text-white" for="opt_@option.Id">@option.Text</label>
-                                                    </div>
-                                                }
-                                                <input type="hidden" name="Answers[@i].QuestionId" value="@question.Id" />
-                                            }
-                                        </div>
-                                    }
-
-                                    <div class="d-grid gap-2 mt-4">
-                                        <button type="submit" class="btn btn-glass-success btn-lg">
-                                            <i class="fas fa-paper-plane me-2"></i>Anketi Gönder
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-
-        @section Scripts {
-            <partial name="_ValidationScriptsPartial" />
+@section Scripts {
+    <script>
+        // İlerleme Çubuğu Güncelleme
+        function updateProgress() {
+            const form = document.getElementById('surveyForm');
+            const totalQuestions = form.querySelectorAll('[data-question-id]').length;
+            const answeredQuestions = form.querySelectorAll('input[type="radio"]:checked, input[type="checkbox"]:checked, textarea:not(:empty)').length;
+            const progress = (answeredQuestions / totalQuestions) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
         }
+
+        // Düşük Puan Kontrolü
+        function checkRating(radio, questionId) {
+            const value = parseInt(radio.value);
+            const threshold = parseInt(radio.dataset.threshold);
+            const warning = document.getElementById('warning_' + questionId);
+            
+            if (warning && value <= threshold) {
+                warning.classList.add('show');
+            } else if (warning) {
+                warning.classList.remove('show');
+            }
+            
+            updateProgress();
+        }
+
+        // Form Submit Öncesi Kontrol
+        document.getElementById('surveyForm').addEventListener('submit', function(e) {
+            const requiredRadios = document.querySelectorAll('input[type="radio"][required]');
+            const questionGroups = {};
+            
+            requiredRadios.forEach(radio => {
+                const name = radio.name;
+                if (!questionGroups[name]) {
+                    questionGroups[name] = false;
+                }
+                if (radio.checked) {
+                    questionGroups[name] = true;
+                }
+            });
+            
+            for (const [name, isChecked] of Object.entries(questionGroups)) {
+                if (!isChecked) {
+                    e.preventDefault();
+                    alert('Lütfen tüm zorunlu soruları yanıtlayın.');
+                    return false;
+                }
+            }
+        });
+
+        // Sayfa Yüklendiğinde
+        document.addEventListener('DOMContentLoaded', function() {
+            updateProgress();
+        });
+    </script>
+}

@@ -1,7 +1,9 @@
 using CEA.Business.Services;
+using CEA.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace CEA.Web.Pages.Admin.Settings
@@ -11,15 +13,26 @@ namespace CEA.Web.Pages.Admin.Settings
     {
         private readonly ISettingsService _settingsService;
         private readonly IEmailService _emailService;
+        private readonly ApplicationDbContext _context;
+        private readonly ILogger<IndexModel> _logger;
 
-        public IndexModel(ISettingsService settingsService, IEmailService emailService)
+        public IndexModel(
+        ISettingsService settingsService,
+        IEmailService emailService,
+        ApplicationDbContext context,
+        ILogger<IndexModel> logger)
         {
             _settingsService = settingsService;
             _emailService = emailService;
+            _context = context;
+            _logger = logger;
         }
+
 
         [BindProperty]
         public SmtpSettingsViewModel SmtpSettings { get; set; } = new();
+
+        public List<CEA.Core.Entities.Survey> Surveys { get; set; } = new();
 
         [BindProperty]
         public string TestEmail { get; set; } = string.Empty; // Required kaldırıldı!
@@ -35,6 +48,10 @@ namespace CEA.Web.Pages.Admin.Settings
 
         public async Task OnGetAsync()
         {
+            Surveys = await _context.Surveys
+        .Where(s => !s.IsDeleted)
+        .OrderBy(s => s.Title)
+        .ToListAsync();
             await LoadSettingsAsync();
         }
 
@@ -125,6 +142,99 @@ namespace CEA.Web.Pages.Admin.Settings
 
             await LoadSettingsAsync();
             return Page();
+        }
+
+        public async Task<IActionResult> OnPostCleanupTestDataAsync(int deleteCount, int? surveyId = null)
+        {
+            try
+            {
+                var query = _context.SurveyResponses.AsQueryable();
+                if (surveyId.HasValue) query = query.Where(r => r.SurveyId == surveyId.Value);
+
+                var responsesToDelete = await query
+                    .OrderByDescending(r => r.CreatedAt)
+                    .Take(deleteCount)
+                    .ToListAsync();
+
+                if (!responsesToDelete.Any())
+                {
+                    TempData["WarningMessage"] = "Silinecek yanıt bulunamadı.";
+                    return RedirectToPage();
+                }
+
+                var responseIds = responsesToDelete.Select(r => r.Id).ToList();
+                _logger.LogInformation("Silinecek ID'ler: {Ids}", string.Join(", ", responseIds));
+
+                // 1. Cevapları (Answers) sil
+                var answers = await _context.Answers
+                    .Where(a => responseIds.Contains(a.ResponseId))
+                    .ToListAsync();
+
+                if (answers.Any())
+                {
+                    _context.Answers.RemoveRange(answers);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("✅ {Count} cevap silindi", answers.Count);
+                }
+
+                // 2. Şikayet Notlarını (ComplaintNotes) sil - Varsa
+                var complaintIds = await _context.Complaints
+                    .Where(c => responseIds.Contains(c.SurveyResponseId))
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                if (complaintIds.Any())
+                {
+                    // Notları sil (varsa)
+                    try
+                    {
+                        var notes = await _context.ComplaintNotes
+                            .Where(n => complaintIds.Contains(n.ComplaintId))
+                            .ToListAsync();
+
+                        if (notes.Any())
+                        {
+                            _context.ComplaintNotes.RemoveRange(notes);
+                            await _context.SaveChangesAsync();
+                            _logger.LogInformation("✅ {Count} not silindi", notes.Count);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Notlar silinirken hata (olmayabilir): {Message}", ex.Message);
+                        // Devam et, kritik değil
+                    }
+
+                    // Şikayetleri sil
+                    var complaints = await _context.Complaints
+                        .Where(c => responseIds.Contains(c.SurveyResponseId))
+                        .ToListAsync();
+
+                    _context.Complaints.RemoveRange(complaints);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("✅ {Count} şikayet silindi", complaints.Count);
+                }
+
+                // 3. Yanıtları sil
+                _context.SurveyResponses.RemoveRange(responsesToDelete);
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("✅ {Count} yanıt silindi", responsesToDelete.Count);
+
+                TempData["SuccessMessage"] = $"{responsesToDelete.Count} kayıt tamamen silindi.";
+            }
+            catch (DbUpdateException dbEx)
+            {
+                _logger.LogError(dbEx, "❌ DbUpdateException: {Message}", dbEx.Message);
+                _logger.LogError(dbEx.InnerException, "Inner: {Inner}", dbEx.InnerException?.Message);
+                TempData["ErrorMessage"] = "Veritabanı hatası: " + (dbEx.InnerException?.Message ?? dbEx.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Hata: {Message}", ex.Message);
+                TempData["ErrorMessage"] = "Hata: " + ex.Message;
+            }
+
+            return RedirectToPage();
         }
     }
 

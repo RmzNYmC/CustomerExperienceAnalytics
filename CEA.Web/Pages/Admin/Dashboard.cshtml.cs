@@ -1,8 +1,9 @@
 using CEA.Business.Services;
+using CEA.Core;
 using CEA.Core.ViewModels;
 using CEA.Data;
-using CEA.Core;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,11 +15,13 @@ namespace CEA.Web.Pages.Admin
     {
         private readonly IAnalyticsService _analyticsService;
         private readonly ApplicationDbContext _context;
+        private readonly ICacheService _cacheService;
 
-        public DashboardModel(IAnalyticsService analyticsService, ApplicationDbContext context)
+        public DashboardModel(IAnalyticsService analyticsService, ApplicationDbContext context, ICacheService cacheService)
         {
             _analyticsService = analyticsService;
             _context = context;
+            _cacheService = cacheService;
         }
 
         public DashboardSummary Summary { get; set; } = new();
@@ -64,6 +67,16 @@ namespace CEA.Web.Pages.Admin
                 new() { Time = DateTime.Now.AddHours(-2), Description = "Şikayet çözüldü: CMP-2024-0005" },
                 new() { Time = DateTime.Now.AddHours(-5), Description = "Yeni anket oluşturuldu: Memnuniyet Anketi 2024" }
             };
+        }
+
+        public async Task<IActionResult> OnPostRefreshDataAsync()
+        {
+            // Cache'i temizle
+            await _cacheService.RemoveAsync("analytics:dashboard:summary");
+            await _cacheService.RemoveByPrefixAsync("analytics:monthly");
+            await _cacheService.RemoveByPrefixAsync("analytics:yearly");
+
+            return RedirectToPage();
         }
     }
 

@@ -1,21 +1,53 @@
 ﻿@page
 @model LogoutModel
 @{
-    ViewData["Title"] = "Log out";
+    ViewData["Title"] = "Çıkış Yapıldı";
+    Layout = "/Pages/Shared/_AuthLayout.cshtml";
 }
 
-<header>
-    <h1>@ViewData["Title"]</h1>
-    @{
-        if (User.Identity?.IsAuthenticated ?? false)
-        {
-            <form class="form-inline" asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Page("/", new { area = "" })" method="post">
-                <button type="submit" class="nav-link btn btn-link text-dark">Click here to Logout</button>
-            </form>
-        }
-        else
-        {
-            <p>You have successfully logged out of the application.</p>
-        }
-    }
-</header>
+<div class="text-center">
+    <div class="mb-4">
+        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+    </div>
+    
+    <h2 class="fw-bold text-gray-800 mb-3">@ViewData["Title"]</h2>
+    
+    <p class="text-gray-600 mb-4">
+        Uygulamadan başarıyla çıkış yaptınız.
+    </p>
+    
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        <span id="countdown">10</span> saniye içinde giriş sayfasına yönlendirileceksiniz...
+    </div>
+    
+    <div class="mt-4">
+        <a asp-page="/Account/Login" asp-area="Identity" class="btn btn-primary">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Hemen Giriş Yap
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // 10 saniye geri sayım ve yönlendirme
+        let seconds = 10;
+        const countdownElement = document.getElementById('countdown');
+        const loginUrl = '/Identity/Account/Login';
+        
+        const timer = setInterval(function() {
+            seconds--;
+            countdownElement.textContent = seconds;
+            
+            if (seconds <= 0) {
+                clearInterval(timer);
+                window.location.href = loginUrl;
+            }
+        }, 1000);
+        
+        // Kullanıcı sayfadan ayrılmak isterse timer'ı temizle (opsiyonel)
+        window.addEventListener('beforeunload', function() {
+            clearInterval(timer);
+        });
+    </script>
+}

@@ -15,5 +15,8 @@ namespace CEA.Business.Services
 
         // Şikayet bildirimi - 3 Parametre (Eğer başka yerde böyle kullanılıyorsa)
         Task SendComplaintNotificationAsync(string to, string ticketNumber, string description);
+
+        // YENİ: Günlük özet rapor
+        Task SendDailySummaryAsync();
     }
 }

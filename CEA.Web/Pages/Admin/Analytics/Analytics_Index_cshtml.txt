@@ -1,0 +1,277 @@
+@page
+@model CEA.Web.Pages.Admin.Analytics.IndexModel
+@{
+    ViewData["Title"] = "Analiz ve Raporlar";
+}
+
+<div class="container-fluid">
+    <h1 class="mt-4 mb-4">📊 Analiz ve Raporlar</h1>
+
+    @* Filtreleme Formu *@
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <i class="fas fa-filter"></i> Rapor Filtreleri
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Anket Seçin</label>
+                    <select asp-for="SelectedSurveyId" asp-items="Model.SurveyList" class="form-select">
+                        <option value="">-- Anket Seçin --</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label">Yıl</label>
+                    <select asp-for="SelectedYear" asp-items="Model.YearList" class="form-select"></select>
+                </div>
+                
+                <div class="col-md-2">
+                    <label class="form-label">Ay (Opsiyonel)</label>
+                    <select asp-for="SelectedMonth" asp-items="Model.MonthList" class="form-select">
+                        <option value="">Tüm Yıl</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label">Karşılaştırma</label>
+                    <select asp-for="ComparisonType" class="form-select">
+                        <option value="None">Karşılaştırma Yok</option>
+                        <option value="PreviousYear">Önceki Yıl</option>
+                        <option value="PreviousMonth">Önceki Ay</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Analiz Et
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.AnalysisResult != null)
+    {
+        @* Özet Kartlar *@
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Toplam Yanıt</div>
+                                <div class="h3 mb-0">@Model.AnalysisResult.TotalResponses</div>
+                            </div>
+                            <i class="fas fa-comments fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Ort. Memnuniyet</div>
+                                <div class="h3 mb-0">@Model.AnalysisResult.AverageSatisfaction.ToString("F1")/5</div>
+                            </div>
+                            <i class="fas fa-smile fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">NPS Skoru</div>
+                                <div class="h3 mb-0">@Model.AnalysisResult.NpsScore.ToString("F0")</div>
+                                <small>@Model.NpsDistribution.Total yanıt</small>
+                            </div>
+                            <i class="fas fa-chart-line fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card bg-warning text-white h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="text-xs font-weight-bold text-uppercase mb-1">Şikayet Sayısı</div>
+                                <div class="h3 mb-0">@Model.AnalysisResult.ComplaintCount</div>
+                            </div>
+                            <i class="fas fa-exclamation-triangle fa-2x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* NPS Dağılımı *@
+        @if (Model.NpsDistribution.Total > 0)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <i class="fas fa-chart-pie"></i> NPS Dağılımı
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="alert alert-success">
+                                <strong>Promoters (9-10)</strong><br>
+                                @Model.NpsDistribution.Promoters kişi (%@Model.NpsDistribution.PromoterPercentage.ToString("F1"))
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-secondary">
+                                <strong>Passives (7-8)</strong><br>
+                                @Model.NpsDistribution.Passives kişi (%@Model.NpsDistribution.PassivePercentage.ToString("F1"))
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-danger">
+                                <strong>Detractors (0-6)</strong><br>
+                                @Model.NpsDistribution.Detractors kişi (%@Model.NpsDistribution.DetractorPercentage.ToString("F1"))
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* Karşılaştırma Sonuçları *@
+        @if (Model.ComparisonResult != null)
+        {
+            <div class="card mb-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <i class="fas fa-balance-scale"></i> @Model.ComparisonLabel
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <p class="mb-1">Yanıt Sayısı</p>
+                            <h5>@Model.ComparisonResult.TotalResponses</h5>
+                            <small class="@(Model.AnalysisResult.TotalResponses > Model.ComparisonResult.TotalResponses ? "text-success" : "text-danger")">
+                                @(Model.AnalysisResult.TotalResponses - Model.ComparisonResult.TotalResponses) fark
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="mb-1">Memnuniyet</p>
+                            <h5>@Model.ComparisonResult.AverageSatisfaction.ToString("F1")</h5>
+                            <small class="@(Model.AnalysisResult.AverageSatisfaction > Model.ComparisonResult.AverageSatisfaction ? "text-success" : "text-danger")">
+                                @((Model.AnalysisResult.AverageSatisfaction - Model.ComparisonResult.AverageSatisfaction).ToString("+0.00;-0.00;0.00")) değişim
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="mb-1">NPS</p>
+                            <h5>@Model.ComparisonResult.NpsScore.ToString("F0")</h5>
+                            <small class="@(Model.AnalysisResult.NpsScore > Model.ComparisonResult.NpsScore ? "text-success" : "text-danger")">
+                                @((Model.AnalysisResult.NpsScore - Model.ComparisonResult.NpsScore).ToString("+0;-0;0")) puan
+                            </small>
+                        </div>
+                        <div class="col-md-3">
+                            <p class="mb-1">Şikayet</p>
+                            <h5>@Model.ComparisonResult.ComplaintCount</h5>
+                            <small class="@(Model.AnalysisResult.ComplaintCount < Model.ComparisonResult.ComplaintCount ? "text-success" : "text-danger")">
+                                @(Model.AnalysisResult.ComplaintCount - Model.ComparisonResult.ComplaintCount) fark
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* Detaylı Soru Analizi *@
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-list-alt"></i> Detaylı Soru Analizleri
+            </div>
+            <div class="card-body">
+                @foreach (var question in Model.AnalysisResult.QuestionBreakdown)
+                {
+                    <div class="mb-4 border-bottom pb-3">
+                        <h5 class="card-title">@question.QuestionText</h5>
+                        <p class="text-muted">
+                            <span class="badge bg-secondary">@question.Type</span>
+                            <span class="ms-2">Ortalama: <strong>@question.AverageScore.ToString("F2")</strong></span>
+                            <span class="ms-2">Yanıt Sayısı: <strong>@question.ResponseCount</strong></span>
+                        </p>
+
+                        @if (question.Distribution.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th style="width: 50%">Seçenek</th>
+                                            <th style="width: 20%">Sayı</th>
+                                            <th style="width: 30%">Oran</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var dist in question.Distribution)
+                                        {
+                                            <tr>
+                                                <td>@dist.Label</td>
+                                                <td>@dist.Count</td>
+                                                <td>
+                                                    <div class="progress" style="height: 20px;">
+                                                        <div class="progress-bar" role="progressbar"
+                                                             style="width: @dist.Percentage%"
+                                                             aria-valuenow="@dist.Percentage"
+                                                             aria-valuemin="0"
+                                                             aria-valuemax="100">
+                                                            %@dist.Percentage.ToString("F1")
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* PDF Export *@
+        <div class="d-flex justify-content-end mb-4">
+            <a asp-page-handler="ExportPdf"
+                   asp-route-surveyId="@Model.SelectedSurveyId"
+                   asp-route-year="@Model.SelectedYear"
+                   asp-route-month="@Model.SelectedMonth"
+                   class="btn btn-danger">
+                <i class="fas fa-file-pdf"></i> PDF İndir
+            </a>
+        </div>
+    }
+    else if (Model.SelectedSurveyId.HasValue)
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-circle"></i> Seçilen kriterlere uygun veri bulunamadı.
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> Analiz görmek için lütfen yukarıdan bir anket seçin.
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Sayfa yüklendiğinde çalışacak JavaScript (varsa)
+        $(document).ready(function() {
+            console.log('Analytics page loaded');
+        });
+    </script>
+}

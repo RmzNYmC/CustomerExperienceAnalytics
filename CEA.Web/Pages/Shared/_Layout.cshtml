@@ -84,20 +84,21 @@
                 </a>
                 
                 <div class="mt-8 pt-6 border-t border-white/10">
-                    <a href="/Profile" class="sidebar-item">
-                        <i class="fas fa-user-cog w-6"></i>
-                        <span>Profilim</span>
+                    <a asp-area="Identity" asp-page="/Account/Manage/Index" class="sidebar-item">
+    <i class="fas fa-user-cog w-6"></i>
+    <span>Profilim</span>
+</a>
                     </a>
                     <a href="/Admin/Settings" class="sidebar-item @(ViewContext.RouteData.Values["Page"]?.ToString()?.Contains("Settings") == true ? "active" : "")">
                         <i class="fas fa-cogs w-6"></i>
                         <span>Sistem Ayarları</span>
                     </a>
-                    <form method="post" asp-page="/Logout" class="d-inline">
-                        <button type="submit" class="sidebar-item w-100 text-start text-danger border-0 bg-transparent">
-                            <i class="fas fa-sign-out-alt w-6"></i>
-                            <span>Çıkış Yap</span>
-                        </button>
-                    </form>
+                <form method="post" asp-area="Identity" asp-page="/Account/Logout" class="d-inline">
+                    <button type="submit" class="sidebar-item w-100 text-start text-danger border-0 bg-transparent">
+                        <i class="fas fa-sign-out-alt w-6"></i>
+                        <span>Çıkış Yap</span>
+                    </button>
+                </form>
                 </div>
             </nav>
 
@@ -172,5 +173,87 @@
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- SignalR Client Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    <script>
+        // SignalR Bağlantısı
+        const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/notificationHub")
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000]) // Otomatik yeniden bağlanma
+        .build();
+
+        // Bildirim alındığında
+        connection.on("ReceiveNotification", function(data) {
+        showToast(data.title, data.message, data.type, data.link);
+        
+        // Bildirim sesi (isteğe bağlı)
+        if (data.type === 'danger' || data.type === 'warning') {
+        playNotificationSound();
+        }
+        });
+
+        // Dashboard güncelleme sinyali
+        connection.on("DashboardUpdate", function(data) {
+        console.log("Dashboard güncellendi:", data);
+        // Sayfayı yenile veya sadece verileri yenile
+        if (window.location.pathname.includes('/Admin/Dashboard')) {
+        setTimeout(() => location.reload(), 2000);
+        }
+        });
+
+        // Bağlantıyı başlat
+        connection.start()
+        .then(() => console.log("SignalR bağlantısı kuruldu"))
+        .catch(err => console.error("SignalR bağlantı hatası:", err));
+
+        // Toast bildirim gösterme fonksiyonu
+        function showToast(title, message, type, link) {
+        const toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+        // Container yoksa oluştur
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'position-fixed top-0 end-0 p-3';
+        container.style.zIndex = '9999';
+        document.body.appendChild(container);
+        }
+
+        const toastId = 'toast-' + Date.now();
+        const bgClass = type === 'danger' ? 'bg-danger' :
+        type === 'warning' ? 'bg-warning' :
+        type === 'success' ? 'bg-success' : 'bg-info';
+        const textClass = type === 'warning' ? 'text-dark' : 'text-white';
+
+        const toastHtml = `
+        <div id="${toastId}" class="toast show ${bgClass} ${textClass} mb-2" role="alert" style="min-width: 300px;">
+        <div class="toast-header ${bgClass} ${textClass}">
+        <strong class="me-auto">${title}</strong>
+        <small>${new Date().toLocaleTimeString()}</small>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body">
+        ${message}
+        ${link ? `<a href="${link}" class="btn btn-sm btn-light mt-2 w-100">Görüntüle</a>` : ''}
+        </div>
+        </div>
+        `;
+        
+        document.getElementById('toast-container').insertAdjacentHTML('beforeend', toastHtml);
+
+        // 10 saniye sonra otomatik kaldır
+        setTimeout(() => {
+        const toast = document.getElementById(toastId);
+        if (toast) toast.remove();
+        }, 10000);
+        }
+
+        // Bildirim sesi (isteğe bağlı)
+        function playNotificationSound() {
+        const audio = new Audio('/sounds/notification.mp3');
+        audio.play().catch(e => console.log('Ses çalınamadı:', e));
+        }
+    </script>
 </body>
 </html>

@@ -23,6 +23,7 @@ namespace CEA.Data
         public DbSet<ComplaintNote> ComplaintNotes { get; set; } = null!;
         public DbSet<Setting> Settings { get; set; } = null!;
         public DbSet<Customer> Customers { get; set; } = null!;
+        public DbSet<AuditLog> AuditLogs { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -90,6 +91,12 @@ namespace CEA.Data
 
                 entity.HasQueryFilter(c => !c.IsDeleted); // Global soft delete filtresi
             });
+            builder.Entity<AuditLog>().HasIndex(a => a.EntityType);
+            builder.Entity<AuditLog>().HasIndex(a => a.UserId);
+            builder.Entity<AuditLog>().HasIndex(a => a.CreatedAt);
+            builder.Entity<AuditLog>().HasIndex(a => new { a.EntityType, a.EntityId }); // Sorgu optimizasyonu
+
+            base.OnModelCreating(builder);
         }
     }
 }

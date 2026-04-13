@@ -1,74 +1,93 @@
-// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-#nullable disable
-
-using System;
-using System.ComponentModel.DataAnnotations;
-using System.Text.Encodings.Web;
-using System.Threading.Tasks;
+using CEA.Core.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using System.ComponentModel.DataAnnotations;
 
 namespace CEA.Web.Areas.Identity.Pages.Account.Manage
 {
     public class IndexModel : PageModel
     {
-        private readonly UserManager<IdentityUser> _userManager;
-        private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
         public IndexModel(
-            UserManager<IdentityUser> userManager,
-            SignInManager<IdentityUser> signInManager)
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager)
         {
             _userManager = userManager;
             _signInManager = signInManager;
         }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        public string Username { get; set; }
+        // Görüntüleme için (Read-only)
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime CreatedDate { get; set; }
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [TempData]
-        public string StatusMessage { get; set; }
+        public string StatusMessage { get; set; } = string.Empty;
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
         [BindProperty]
-        public InputModel Input { get; set; }
+        public ProfileInputModel ProfileInput { get; set; } = new();
 
-        /// <summary>
-        ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-        ///     directly from your code. This API may change or be removed in future releases.
-        /// </summary>
-        public class InputModel
+        [BindProperty]
+        public PasswordInputModel PasswordInput { get; set; } = new();
+
+        // Profil güncelleme için model
+        public class ProfileInputModel
         {
-            /// <summary>
-            ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
-            ///     directly from your code. This API may change or be removed in future releases.
-            /// </summary>
-            [Phone]
-            [Display(Name = "Phone number")]
-            public string PhoneNumber { get; set; }
+            [Required(ErrorMessage = "Ad alanı zorunludur.")]
+            [Display(Name = "Ad")]
+            public string FirstName { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Soyad alanı zorunludur.")]
+            [Display(Name = "Soyad")]
+            public string LastName { get; set; } = string.Empty;
+
+            [Display(Name = "Departman")]
+            public string? Department { get; set; }
+
+            [Phone(ErrorMessage = "Geçerli bir telefon numarası giriniz.")]
+            [Display(Name = "Telefon Numarası")]
+            public string? PhoneNumber { get; set; }
         }
 
-        private async Task LoadAsync(IdentityUser user)
+        // Şifre değiştirme için model
+        public class PasswordInputModel
+        {
+            [Required(ErrorMessage = "Mevcut şifre zorunludur.")]
+            [DataType(DataType.Password)]
+            [Display(Name = "Mevcut Şifre")]
+            public string CurrentPassword { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Yeni şifre zorunludur.")]
+            [StringLength(100, ErrorMessage = "{0} en az {2} karakter uzunluğunda olmalıdır.", MinimumLength = 8)]
+            [DataType(DataType.Password)]
+            [Display(Name = "Yeni Şifre")]
+            public string NewPassword { get; set; } = string.Empty;
+
+            [DataType(DataType.Password)]
+            [Display(Name = "Yeni Şifre Tekrar")]
+            [Compare("NewPassword", ErrorMessage = "Yeni şifreler eşleşmiyor.")]
+            public string ConfirmPassword { get; set; } = string.Empty;
+        }
+
+        private async Task LoadAsync(ApplicationUser user)
         {
             var userName = await _userManager.GetUserNameAsync(user);
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
 
             Username = userName;
+            Email = user.Email ?? string.Empty;
+            IsActive = user.IsActive;
+            CreatedDate = user.CreatedDate;
 
-            Input = new InputModel
+            ProfileInput = new ProfileInputModel
             {
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Department = user.Department,
                 PhoneNumber = phoneNumber
             };
         }
@@ -78,19 +97,20 @@ namespace CEA.Web.Areas.Identity.Pages.Account.Manage
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound($"Kullanıcı yüklenemedi. ID: '{_userManager.GetUserId(User)}'.");
             }
 
             await LoadAsync(user);
             return Page();
         }
 
-        public async Task<IActionResult> OnPostAsync()
+        // Profil bilgilerini güncelle
+        public async Task<IActionResult> OnPostUpdateProfileAsync()
         {
             var user = await _userManager.GetUserAsync(User);
             if (user == null)
             {
-                return NotFound($"Unable to load user with ID '{_userManager.GetUserId(User)}'.");
+                return NotFound($"Kullanıcı yüklenemedi. ID: '{_userManager.GetUserId(User)}'.");
             }
 
             if (!ModelState.IsValid)
@@ -99,19 +119,79 @@ namespace CEA.Web.Areas.Identity.Pages.Account.Manage
                 return Page();
             }
 
+            // Telefon numarası güncelleme
             var phoneNumber = await _userManager.GetPhoneNumberAsync(user);
-            if (Input.PhoneNumber != phoneNumber)
+            if (ProfileInput.PhoneNumber != phoneNumber)
             {
-                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+                var setPhoneResult = await _userManager.SetPhoneNumberAsync(user, ProfileInput.PhoneNumber);
                 if (!setPhoneResult.Succeeded)
                 {
-                    StatusMessage = "Unexpected error when trying to set phone number.";
+                    StatusMessage = "Hata: Telefon numarası kaydedilirken bir sorun oluştu.";
                     return RedirectToPage();
                 }
             }
 
+            // Profil bilgileri güncelleme
+            if (user.FirstName != ProfileInput.FirstName ||
+                user.LastName != ProfileInput.LastName ||
+                user.Department != ProfileInput.Department)
+            {
+                user.FirstName = ProfileInput.FirstName;
+                user.LastName = ProfileInput.LastName;
+                user.Department = ProfileInput.Department;
+
+                var updateResult = await _userManager.UpdateAsync(user);
+                if (!updateResult.Succeeded)
+                {
+                    foreach (var error in updateResult.Errors)
+                    {
+                        ModelState.AddModelError(string.Empty, error.Description);
+                    }
+                    await LoadAsync(user);
+                    return Page();
+                }
+            }
+
             await _signInManager.RefreshSignInAsync(user);
-            StatusMessage = "Your profile has been updated";
+            StatusMessage = "Profil bilgileriniz başarıyla güncellendi.";
+            return RedirectToPage();
+        }
+
+        // Şifre değiştirme
+        public async Task<IActionResult> OnPostChangePasswordAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return NotFound($"Kullanıcı yüklenemedi. ID: '{_userManager.GetUserId(User)}'.");
+            }
+
+            // ModelState'i sadece PasswordInput için kontrol et
+            if (!TryValidateModel(PasswordInput, nameof(PasswordInput)))
+            {
+                await LoadAsync(user);
+                return Page();
+            }
+
+            var changePasswordResult = await _userManager.ChangePasswordAsync(user,
+                PasswordInput.CurrentPassword, PasswordInput.NewPassword);
+
+            if (!changePasswordResult.Succeeded)
+            {
+                foreach (var error in changePasswordResult.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                await LoadAsync(user);
+                return Page();
+            }
+
+            await _signInManager.RefreshSignInAsync(user);
+            StatusMessage = "Şifreniz başarıyla değiştirildi.";
+
+            // PasswordInput'u temizle
+            PasswordInput = new PasswordInputModel();
+
             return RedirectToPage();
         }
     }

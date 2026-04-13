@@ -1,7 +1,6 @@
 ﻿using CEA.Business.Services;
 using CEA.Core.Entities;
 using CEA.Core.Enum;
-using CEA.Core.Enums;
 using CEA.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

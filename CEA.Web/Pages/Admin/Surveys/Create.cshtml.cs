@@ -1,6 +1,5 @@
 using CEA.Core.Entities; // Bu using zaten var olmalı
 using CEA.Core.Enum;
-using CEA.Core.Enums;
 using CEA.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

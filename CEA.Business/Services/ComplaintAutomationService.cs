@@ -1,6 +1,5 @@
 ﻿using CEA.Core.Entities;
 using CEA.Core.Enum;
-using CEA.Core.Enums;
 using CEA.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,15 +16,24 @@ namespace CEA.Business.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly IEmailService _emailService;
+        private readonly ISmartAssignmentService _smartAssignmentService;
+        private readonly IRealTimeNotificationService _notificationService; // ✅ Zaten var
+        private readonly IAuditService _auditService; // ✅ YENİ EKLENDİ
         private readonly ILogger<ComplaintAutomationService> _logger;
 
         public ComplaintAutomationService(
             ApplicationDbContext context,
             IEmailService emailService,
+            ISmartAssignmentService smartAssignmentService,
+            IRealTimeNotificationService notificationService,
+            IAuditService auditService, // ✅ EKLENDİ
             ILogger<ComplaintAutomationService> logger)
         {
             _context = context;
             _emailService = emailService;
+            _smartAssignmentService = smartAssignmentService;
+            _notificationService = notificationService;
+            _auditService = auditService;
             _logger = logger;
         }
 
@@ -126,10 +134,21 @@ namespace CEA.Business.Services
 
             _logger.LogInformation("Şikayet oluşturuldu: {TicketNumber}", ticketNumber);
 
-            // Yöneticilere mail gönder
+            // ✅ 1. REAL-TIME BİLDİRİM (SignalR) - YENİ EKLENDİ
+            await _notificationService.NotifyNewComplaint(
+                complaint.Id,
+                complaint.TicketNumber,
+                complaint.Priority);
+
+            // ✅ 2. AUDIT LOG - YENİ EKLENDİ
+            await _auditService.LogComplaintCreatedAsync(
+                complaint.Id,
+                complaint.CustomerEmail);
+
+            // 3. Email bildirimi (mevcut kod)
             await NotifyManagers(complaint);
 
-            // Otomatik atama dene
+            // 4. Otomatik atama (mevcut kod)
             await AutoAssignComplaintAsync(complaint.Id);
         }
 
@@ -158,21 +177,19 @@ namespace CEA.Business.Services
 
         private async Task NotifyManagers(Complaint complaint)
         {
-            // Şikayet yöneticisi yetkisine sahip kullanıcıları bul
             var managers = await _context.Users
                 .Where(u => u.IsActive)
-                .ToListAsync(); // Basitleştirildi - gerçek uygulamada role göre filtrele
+                .ToListAsync();
 
             foreach (var user in managers)
             {
-                // NULL KONTROLÜ EKLENDİ
                 if (string.IsNullOrEmpty(user.Email))
                     continue;
 
                 try
                 {
                     await _emailService.SendComplaintNotificationAsync(
-                        user.Email,  // Artık null değil garantisi var
+                        user.Email,
                         complaint.TicketNumber,
                         complaint.CustomerName ?? "İsimsiz Müşteri",
                         complaint.Description
@@ -185,35 +202,46 @@ namespace CEA.Business.Services
             }
         }
 
+        // ✅ GÜNCELLENDİ: SmartAssignmentService kullanıyor + SignalR + Audit
         public async Task AutoAssignComplaintAsync(int complaintId)
         {
             var complaint = await _context.Complaints.FindAsync(complaintId);
             if (complaint == null || !string.IsNullOrEmpty(complaint.AssignedToUserId))
                 return;
 
-            // En az şikayeti olan aktif kullanıcıyı bul
-            var assignee = await _context.Users
-                .Where(u => u.IsActive)
-                .GroupJoin(
-                    _context.Complaints.Where(c => c.Status != ComplaintStatus.Closed && !c.IsDeleted),
-                    u => u.Id,
-                    c => c.AssignedToUserId,
-                    (u, complaints) => new { User = u, Count = complaints.Count() })
-                .OrderBy(x => x.Count)
-                .Select(x => x.User)
-                .FirstOrDefaultAsync();
+            // SmartAssignmentService kullan (workload balancing + expertise matching)
+            var assigneeId = await _smartAssignmentService.FindBestAssigneeAsync(
+                complaint.Category,
+                complaint.Priority);
 
-            if (assignee != null)
+            if (assigneeId == null)
             {
-                complaint.AssignedToUserId = assignee.Id;
-                complaint.AssignedAt = DateTime.Now;
-                complaint.Status = ComplaintStatus.InProgress;
-
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Şikayet {TicketNumber} otomatik olarak {User} kullanıcısına atandı.",
-                    complaint.TicketNumber, assignee.Email);
+                _logger.LogWarning("Otomatik atama başarısız: Uygun kullanıcı bulunamadı. Ticket: {Ticket}",
+                    complaint.TicketNumber);
+                return;
             }
+
+            // Atama işlemi
+            complaint.AssignedToUserId = assigneeId;
+            complaint.AssignedAt = DateTime.Now;
+            complaint.Status = ComplaintStatus.InProgress;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Şikayet {Ticket} otomatik atandı: {User}",
+                complaint.TicketNumber, assigneeId);
+
+            // ✅ REAL-TIME BİLDİRİM (SignalR) - YENİ EKLENDİ
+            await _notificationService.NotifyComplaintAssigned(
+                complaint.Id,
+                assigneeId,
+                "Sistem (Otomatik)");
+
+            // ✅ AUDIT LOG - YENİ EKLENDİ
+            await _auditService.LogComplaintAssignedAsync(
+                complaint.Id,
+                null,
+                assigneeId);
         }
     }
 }
