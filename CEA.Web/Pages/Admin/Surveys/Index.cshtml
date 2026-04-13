@@ -16,9 +16,9 @@
     </a>
 </div>
 
-<div class="glass-card p-4" style="background: rgba(30, 58, 138, 0.4) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);">
-    <div class="table-responsive">
-        <table class="glass-table" style="background: transparent !important; color: white;">
+<div class="glass-card" @* "glass-card p-4" style="background: rgba(30, 58, 138, 0.4) !important; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.2);" *@>
+    <div class="overflow-x-auto" @* "table-responsive" *@>
+        <table class="glass-table w-full text-sm" @* style="background: transparent !important; color: white;" *@>
             <thead>
                 <tr>
                     <th>Anket Adı</th>
@@ -32,7 +32,7 @@
             <tbody>
                 @foreach (var survey in Model.Surveys)
                 {
-                    <tr style="background: rgba(255, 255, 255, 0.05); color: white;">
+                    <tr>
                         <td>
                             <div class="fw-semibold">@survey.Title</div>
                             <small class="text-white/50">@survey.CreatedAt.ToString("dd.MM.yyyy")</small>
