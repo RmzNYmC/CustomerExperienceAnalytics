@@ -80,17 +80,26 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // DÜZELTİLDİ: Authorization Policies eklendi
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("CanCreateSurvey", policy =>
+    options.AddPolicy("CanManageCustomers", policy =>
+    policy.RequireRole("Admin", "SurveyManager", "ComplaintManager"));
+
+    options.AddPolicy("CanManageSurveys", policy =>
         policy.RequireRole("Admin", "SurveyManager"));
 
-    options.AddPolicy("CanViewReports", policy =>
+    options.AddPolicy("CanViewAnalytics", policy =>
         policy.RequireRole("Admin", "SurveyManager", "ComplaintManager"));
 
-    options.AddPolicy("CanManageUsers", policy =>
-        policy.RequireRole("Admin"));
+    //options.AddPolicy("CanCreateSurvey", policy =>
+    //    policy.RequireRole("Admin", "SurveyManager"));
 
-    options.AddPolicy("CanHandleComplaints", policy =>
-        policy.RequireRole("Admin", "ComplaintManager"));
+    //options.AddPolicy("CanViewReports", policy =>
+    //    policy.RequireRole("Admin", "SurveyManager", "ComplaintManager"));
+
+    //options.AddPolicy("CanManageUsers", policy =>
+    //    policy.RequireRole("Admin"));
+
+    //options.AddPolicy("CanHandleComplaints", policy =>
+    //    policy.RequireRole("Admin", "ComplaintManager"));
 });
 
 builder.Services.ConfigureApplicationCookie(options =>
