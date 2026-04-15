@@ -1,6 +1,7 @@
 using CEA.Core.Entities;
 using CEA.Core.Enum;
 using CEA.Data;
+using CEA.Web.Dtos.Surveys;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -121,7 +122,7 @@ namespace CEA.Web.Controllers
                 ThankYouMessage = request.ThankYouMessage,
                 StartDate = request.StartDate,
                 EndDate = request.EndDate,
-                Status = request.Status ?? SurveyStatus.Draft,
+                Status = (SurveyStatus)request.Status,
                 AnalysisYear = request.AnalysisYear,
                 AnalysisMonth = request.AnalysisType == "Monthly" ? request.AnalysisMonth : null,
                 RequiresAuthentication = request.RequiresAuthentication,
@@ -139,18 +140,18 @@ namespace CEA.Web.Controllers
                 {
                     Text = item.Text,
                     Description = item.Description,
-                    QuestionType = item.QuestionType,
+                    QuestionType = (QuestionType)item.QuestionType,
                     IsRequired = item.IsRequired,
                     DisplayOrder = displayOrder++,
                     TriggerComplaintOnLowRating = item.TriggerComplaintOnLowRating,
                     ComplaintThreshold = item.ComplaintThreshold,
-                    MinRating = item.QuestionType == QuestionType.NpsScore ? 0 : item.MinRating,
-                    MaxRating = item.QuestionType == QuestionType.NpsScore ? 10 : item.MaxRating,
+                    MinRating = (QuestionType)item.QuestionType == QuestionType.NpsScore ? 0 : item.MinRating,
+                    MaxRating = (QuestionType)item.QuestionType == QuestionType.NpsScore ? 10 : item.MaxRating,
                     CreatedAt = DateTime.Now,
                     CreatedBy = User.Identity?.Name ?? "api"
                 };
 
-                if (item.QuestionType == QuestionType.RatingScale)
+                if ((QuestionType)item.QuestionType == QuestionType.RatingScale)
                 {
                     question.MinRating ??= 1;
                     question.MaxRating ??= 5;
@@ -219,7 +220,7 @@ namespace CEA.Web.Controllers
             if (survey == null)
                 return NotFound(new { message = "Anket bulunamadı." });
 
-            survey.Status = request.Status;
+            survey.Status = (SurveyStatus)request.Status;
             survey.UpdatedAt = DateTime.Now;
             survey.UpdatedBy = User.Identity?.Name ?? "api";
 
@@ -255,63 +256,14 @@ namespace CEA.Web.Controllers
         }
     }
 
-    public class SurveyCreateDto
-    {
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? WelcomeMessage { get; set; }
-        public string? ThankYouMessage { get; set; }
-        public DateTime? StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
-        public string AnalysisType { get; set; } = "Yearly";
-        public int AnalysisYear { get; set; } = DateTime.Now.Year;
-        public int? AnalysisMonth { get; set; }
-        public bool RequiresAuthentication { get; set; }
-        public bool AllowMultipleResponses { get; set; }
-        public SurveyStatus? Status { get; set; }
-        public List<SurveyQuestionCreateDto> Questions { get; set; } = new();
-    }
+    
 
-    public class SurveyUpdateDto
-    {
-        public string Title { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public string? WelcomeMessage { get; set; }
-        public string? ThankYouMessage { get; set; }
-        public DateTime? StartDate { get; set; }
-        public DateTime? EndDate { get; set; }
-        public string AnalysisType { get; set; } = "Yearly";
-        public int AnalysisYear { get; set; } = DateTime.Now.Year;
-        public int? AnalysisMonth { get; set; }
-        public bool RequiresAuthentication { get; set; }
-        public bool AllowMultipleResponses { get; set; }
-        public SurveyStatus Status { get; set; }
-    }
+   
+    
 
-    public class SurveyStatusUpdateDto
-    {
-        public SurveyStatus Status { get; set; }
-    }
+    
 
-    public class SurveyQuestionCreateDto
-    {
-        public string Text { get; set; } = string.Empty;
-        public string? Description { get; set; }
-        public QuestionType QuestionType { get; set; }
-        public bool IsRequired { get; set; } = true;
-        public bool TriggerComplaintOnLowRating { get; set; }
-        public int? ComplaintThreshold { get; set; }
-        public int? MinRating { get; set; }
-        public int? MaxRating { get; set; }
-        public List<SurveyOptionCreateDto>? Options { get; set; }
-    }
-
-    public class SurveyOptionCreateDto
-    {
-        public string Text { get; set; } = string.Empty;
-        public int ScoreValue { get; set; }
-        //public int ScoreValue => scoreValue;
-    }
+    
 
     public class SurveyListDto
     {
