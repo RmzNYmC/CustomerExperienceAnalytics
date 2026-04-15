@@ -35,8 +35,4 @@
 		<ProjectReference Include="..\CEA.Core\CEA.Core.csproj" />
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Dtos\Analytics\" />
-	</ItemGroup>
-
 </Project>

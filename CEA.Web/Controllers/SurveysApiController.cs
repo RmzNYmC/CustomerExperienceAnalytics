@@ -256,15 +256,6 @@ namespace CEA.Web.Controllers
         }
     }
 
-    
-
-   
-    
-
-    
-
-    
-
     public class SurveyListDto
     {
         public int Id { get; set; }

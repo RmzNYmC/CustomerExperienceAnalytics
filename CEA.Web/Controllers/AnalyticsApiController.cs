@@ -1,6 +1,8 @@
 using CEA.Business.Services;
 using CEA.Core.Enum;
 using CEA.Data;
+using CEA.Web.Dtos.Analytics;
+using CEA.Web.Dtos.Common;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +35,7 @@ namespace CEA.Web.Controllers
         {
             var surveyExists = await _context.Surveys.AnyAsync(s => s.Id == surveyId && !s.IsDeleted);
             if (!surveyExists)
-                return NotFound(new { message = "Anket bulunamadı." });
+                return NotFound(ApiResponse<object>.Fail("Anket bulunamadı."));
 
             var result = month.HasValue
                 ? await _analyticsService.GetMonthlyAnalysisAsync(surveyId, year, month.Value)
@@ -46,11 +48,11 @@ namespace CEA.Web.Controllers
         public async Task<IActionResult> GetComparison(int surveyId, [FromQuery] int startYear, [FromQuery] int endYear)
         {
             if (endYear < startYear)
-                return BadRequest(new { message = "Bitiş yılı başlangıç yılından küçük olamaz." });
+                return BadRequest(ApiResponse<object>.Fail("Bitiş yılı başlangıç yılından küçük olamaz."));
 
             var surveyExists = await _context.Surveys.AnyAsync(s => s.Id == surveyId && !s.IsDeleted);
             if (!surveyExists)
-                return NotFound(new { message = "Anket bulunamadı." });
+                return NotFound(ApiResponse<object>.Fail("Anket bulunamadı."));
 
             var result = await _analyticsService.GetComparisonAnalysisAsync(surveyId, startYear, endYear);
             return Ok(result);
@@ -75,12 +77,12 @@ namespace CEA.Web.Controllers
                 .Select(a => a.NumericAnswer!.Value)
                 .ToListAsync();
 
-            var result = new
+            var result = new NpsDistributionDto
             {
-                promoters = scores.Count(x => x >= 9),
-                passives = scores.Count(x => x >= 7 && x <= 8),
-                detractors = scores.Count(x => x <= 6),
-                total = scores.Count
+                Promoters = scores.Count(x => x >= 9),
+                Passives = scores.Count(x => x >= 7 && x <= 8),
+                Detractors = scores.Count(x => x <= 6),
+                Total = scores.Count
             };
 
             return Ok(result);
@@ -98,7 +100,7 @@ namespace CEA.Web.Controllers
         public async Task<IActionResult> InvalidateSurveyCache(int surveyId)
         {
             await _analyticsService.InvalidateCacheAsync(surveyId);
-            return Ok(new { message = "Analitik cache temizlendi." });
+            return Ok(ApiResponse<object>.Ok(null, "Analitik cache temizlendi."));
         }
     }
 }
