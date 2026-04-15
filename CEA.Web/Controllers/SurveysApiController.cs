@@ -95,7 +95,7 @@ namespace CEA.Web.Controllers
                     {
                         Id = o.Id,
                         Text = o.Text,
-                        ScoreValue = o.ScoreValue,
+                        ScoreValue = o.ScoreValue ?? 0,
                         DisplayOrder = o.DisplayOrder
                     }).ToList()
                 }).ToList()
@@ -309,8 +309,8 @@ namespace CEA.Web.Controllers
     public class SurveyOptionCreateDto
     {
         public string Text { get; set; } = string.Empty;
-        public int scoreValue { get; set; }
-        public int ScoreValue => scoreValue;
+        public int ScoreValue { get; set; }
+        //public int ScoreValue => scoreValue;
     }
 
     public class SurveyListDto

@@ -1,5 +1,7 @@
 using CEA.Core.Entities;
 using CEA.Data;
+using CEA.Web.Dtos.Common;
+using CEA.Web.Dtos.Customers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -28,7 +30,9 @@ namespace CEA.Web.Controllers
             page = page < 1 ? 1 : page;
             pageSize = pageSize < 1 ? 25 : Math.Min(pageSize, 100);
 
-            var query = _context.Customers.AsNoTracking().AsQueryable();
+            var query = _context.Customers
+                .AsNoTracking()
+                .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(searchTerm))
             {
@@ -45,6 +49,7 @@ namespace CEA.Web.Controllers
             }
 
             var totalRecords = await query.CountAsync();
+
             var customers = await query
                 .OrderBy(c => c.Name)
                 .Skip((page - 1) * pageSize)
@@ -104,13 +109,19 @@ namespace CEA.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateCustomer([FromBody] CustomerUpsertDto request)
+        public async Task<IActionResult> CreateCustomer([FromBody] CustomerCreateDto request)
         {
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
 
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "E-posta adresi zorunludur." });
+
             var normalizedEmail = request.Email.Trim().ToLower();
-            var exists = await _context.Customers.AnyAsync(c => c.Email.ToLower() == normalizedEmail);
+
+            var exists = await _context.Customers
+                .AnyAsync(c => c.Email.ToLower() == normalizedEmail);
+
             if (exists)
                 return Conflict(new { message = "Bu e-posta adresi zaten kayıtlı." });
 
@@ -131,27 +142,46 @@ namespace CEA.Web.Controllers
             _context.Customers.Add(customer);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetCustomer), new { id = customer.Id }, new
+            var resultDto = new CustomerDto
             {
-                customer.Id,
-                customer.Name,
-                customer.Email,
-                message = "Müşteri başarıyla oluşturuldu."
-            });
+                Id = customer.Id,
+                Name = customer.Name,
+                Email = customer.Email,
+                CompanyName = customer.CompanyName,
+                Phone = customer.Phone,
+                Segment = customer.Segment,
+                Notes = customer.Notes,
+                EmailVerified = customer.EmailVerified,
+                BounceEmail = customer.BounceEmail,
+                ResponseCount = 0,
+                CreatedAt = customer.CreatedAt,
+                UpdatedAt = customer.UpdatedAt
+            };
+
+            return CreatedAtAction(
+                nameof(GetCustomer),
+                new { id = customer.Id },
+                ApiResponse<CustomerDto>.Ok(resultDto, "Müşteri oluşturuldu."));
         }
 
         [HttpPut("{id:int}")]
-        public async Task<IActionResult> UpdateCustomer(int id, [FromBody] CustomerUpsertDto request)
+        public async Task<IActionResult> UpdateCustomer(int id, [FromBody] CustomerUpdateDto request)
         {
             if (!ModelState.IsValid)
                 return ValidationProblem(ModelState);
+
+            if (string.IsNullOrWhiteSpace(request.Email))
+                return BadRequest(new { message = "E-posta adresi zorunludur." });
 
             var customer = await _context.Customers.FindAsync(id);
             if (customer == null)
                 return NotFound(new { message = "Müşteri bulunamadı." });
 
             var normalizedEmail = request.Email.Trim().ToLower();
-            var emailInUse = await _context.Customers.AnyAsync(c => c.Id != id && c.Email.ToLower() == normalizedEmail);
+
+            var emailInUse = await _context.Customers
+                .AnyAsync(c => c.Id != id && c.Email.ToLower() == normalizedEmail);
+
             if (emailInUse)
                 return Conflict(new { message = "Bu e-posta adresi başka bir müşteriye ait." });
 
@@ -184,20 +214,9 @@ namespace CEA.Web.Controllers
             customer.UpdatedBy = User.Identity?.Name ?? "api";
 
             await _context.SaveChangesAsync();
+
             return Ok(new { message = "Müşteri silindi." });
         }
-    }
-
-    public class CustomerUpsertDto
-    {
-        public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string? CompanyName { get; set; }
-        public string? Phone { get; set; }
-        public string? Segment { get; set; }
-        public string? Notes { get; set; }
-        public bool EmailVerified { get; set; }
-        public bool BounceEmail { get; set; }
     }
 
     public class CustomerListItemDto

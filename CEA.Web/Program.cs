@@ -8,7 +8,7 @@ using CEA.Web.Data;
 using CEA.Web.Hubs;
 using CEA.Web.Middleware;
 using CEA.Web.Services;
-using DocumentFormat.OpenXml.Spreadsheet;
+using Microsoft.OpenApi;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Hangfire;
@@ -132,7 +132,17 @@ builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();
 builder.Services.AddValidatorsFromAssemblyContaining<ComplaintValidator>();
 
-builder.Services.AddScoped<IComplaintAutomationService, ComplaintAutomationService>();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Customer Experience API",
+        Version = "v1"
+    });
+        
+});
 
 // SignalR
 builder.Services.AddSignalR();
@@ -164,6 +174,8 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 else
 {
@@ -178,6 +190,7 @@ app.UseHttpsRedirection();
 app.UseResponseCompression();
 app.UseStaticFiles();
 app.UseRouting();
+
 app.UseAuthentication();
 app.UseAuthorization();
 // SignalR Hub endpoint
@@ -201,9 +214,7 @@ using (var scope = app.Services.CreateScope())
     {
         
         var context = services.GetRequiredService<ApplicationDbContext>();
-        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
+      
         await context.Database.MigrateAsync();
 
         // Mevcut Initialize (Roller/Admin için)
