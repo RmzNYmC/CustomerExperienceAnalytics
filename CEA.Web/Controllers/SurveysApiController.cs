@@ -11,7 +11,7 @@ namespace CEA.Web.Controllers
 {
     [Route("api/surveys")]
     [ApiController]
-    [Authorize(Policy = "CanCreateSurvey")]
+    [Authorize(Policy = "CanManageSurveys")]
     public class SurveysApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

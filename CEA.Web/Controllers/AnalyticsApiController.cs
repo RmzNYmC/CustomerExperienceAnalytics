@@ -11,7 +11,7 @@ namespace CEA.Web.Controllers
 {
     [Route("api/analytics")]
     [ApiController]
-    [Authorize(Policy = "CanViewReports")]
+    [Authorize(Policy = "CanViewAnalytics")]
     public class AnalyticsApiController : ControllerBase
     {
         private readonly IAnalyticsService _analyticsService;

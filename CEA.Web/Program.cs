@@ -89,17 +89,17 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("CanViewAnalytics", policy =>
         policy.RequireRole("Admin", "SurveyManager", "ComplaintManager"));
 
-    //options.AddPolicy("CanCreateSurvey", policy =>
-    //    policy.RequireRole("Admin", "SurveyManager"));
+    options.AddPolicy("CanCreateSurvey", policy =>
+        policy.RequireRole("Admin", "SurveyManager"));
 
-    //options.AddPolicy("CanViewReports", policy =>
-    //    policy.RequireRole("Admin", "SurveyManager", "ComplaintManager"));
+    options.AddPolicy("CanViewReports", policy =>
+        policy.RequireRole("Admin", "SurveyManager", "ComplaintManager"));
 
-    //options.AddPolicy("CanManageUsers", policy =>
-    //    policy.RequireRole("Admin"));
+    options.AddPolicy("CanManageUsers", policy =>
+        policy.RequireRole("Admin"));
 
-    //options.AddPolicy("CanHandleComplaints", policy =>
-    //    policy.RequireRole("Admin", "ComplaintManager"));
+    options.AddPolicy("CanHandleComplaints", policy =>
+        policy.RequireRole("Admin", "ComplaintManager"));
 });
 
 builder.Services.ConfigureApplicationCookie(options =>
