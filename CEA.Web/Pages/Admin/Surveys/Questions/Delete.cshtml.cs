@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CEA.Web.Pages.Admin.Surveys.Questions
 {
-    [Authorize(Policy = "CanCreateSurvey")]
+    [Authorize(Policy = "CanManageSurveys")]
     public class DeleteModel : PageModel
     {
         private readonly ApplicationDbContext _context;

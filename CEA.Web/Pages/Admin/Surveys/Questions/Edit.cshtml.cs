@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CEA.Web.Pages.Admin.Surveys.Questions
 {
-    [Authorize(Policy = "CanCreateSurvey")]
+    [Authorize(Policy = "CanManageSurveys")]
     public class EditModel : PageModel
     {
         private readonly ApplicationDbContext _context;

@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CEA.Web.Pages.Admin.Surveys
 {
-    [Authorize(Policy = "CanCreateSurvey")]
+    [Authorize(Policy = "CanManageSurveys")]
     public class SendMailModel : PageModel
     {
         private readonly ApplicationDbContext _context;

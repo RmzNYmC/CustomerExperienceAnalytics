@@ -10,7 +10,7 @@ using SurveyEntity = CEA.Core.Entities.Survey;
 
 namespace CEA.Web.Pages.Admin.Surveys
 {
-    [Authorize(Policy = "CanCreateSurvey")]
+    [Authorize(Policy = "CanManageSurveys")]
     public class EditModel : PageModel
     {
         private readonly ApplicationDbContext _context;

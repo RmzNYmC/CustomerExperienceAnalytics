@@ -9,7 +9,7 @@ using System.Text.Json;
 
 namespace CEA.Web.Pages.Admin.Surveys
 {
-    [Authorize(Policy = "CanCreateSurvey")]
+    [Authorize(Policy = "CanManageSurveys")]
     public class CreateModel : PageModel
     {
         private readonly ApplicationDbContext _context;
