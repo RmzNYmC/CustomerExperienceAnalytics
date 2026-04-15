@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CEA.Web.Pages.Admin.Customers
 {
-    [Authorize(Policy = "CanCreateSurvey")]
+    [Authorize(Policy = "CanManageCustomers")]
     public class IndexModel : PageModel
     {
         private readonly ApplicationDbContext _context;
