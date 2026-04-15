@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CEA.Web.Pages.Admin.Analytics
 {
-    [Authorize(Policy = "CanViewReports")]
+    [Authorize(Policy = "CanViewAnalytics")]
     public class IndexModel : PageModel
     {
         private readonly IAnalyticsService _analyticsService;
