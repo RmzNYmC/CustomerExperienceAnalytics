@@ -134,6 +134,18 @@ builder.Services.AddHostedService<SlaMonitorBackgroundService>();
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ReactApp", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 builder.Services.AddHttpContextAccessor(); // AuditService için gerekli
 builder.Services.AddScoped<IAuditService, AuditService>();
 
@@ -199,7 +211,7 @@ app.UseHttpsRedirection();
 app.UseResponseCompression();
 app.UseStaticFiles();
 app.UseRouting();
-
+app.UseCors("ReactApp");
 app.UseAuthentication();
 app.UseAuthorization();
 // SignalR Hub endpoint

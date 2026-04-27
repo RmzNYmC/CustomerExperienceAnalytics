@@ -11,7 +11,8 @@ namespace CEA.Web.Controllers
 {
     [Route("api/surveys")]
     [ApiController]
-    [Authorize(Policy = "CanManageSurveys")]
+    //[Authorize(Policy = "CanManageSurveys")]
+    [AllowAnonymous]
     public class SurveysApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -51,6 +52,7 @@ namespace CEA.Web.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetSurvey(int id)
         {
             var survey = await _context.Surveys

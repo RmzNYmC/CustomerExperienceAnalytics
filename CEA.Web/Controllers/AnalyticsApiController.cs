@@ -24,6 +24,7 @@ namespace CEA.Web.Controllers
         }
 
         [HttpGet("dashboard-summary")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetDashboardSummary()
         {
             var summary = await _analyticsService.GetDashboardSummaryAsync();

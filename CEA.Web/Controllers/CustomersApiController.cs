@@ -10,7 +10,8 @@ namespace CEA.Web.Controllers
 {
     [Route("api/customers")]
     [ApiController]
-    [Authorize(Policy = "CanManageCustomers")]
+    //[Authorize(Policy = "CanManageCustomers")]
+    [AllowAnonymous]
     public class CustomersApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
